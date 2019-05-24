@@ -1,0 +1,8 @@
+[{
+    "id": 1,
+    "name": "write",
+    "arg_count": 3,
+    "arg1": "fd",
+    "arg2": "user:string",
+    "arg3": "num:size_t"
+}]
