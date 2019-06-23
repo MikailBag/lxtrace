@@ -1,0 +1,4 @@
+arg_flag = {"in" | "out"}
+arg_flags = {"()" | "(" ~ arg_flag ~ ("," ~ arg_flag)* ~ ")"}
+arg_type_name = {"fd" | "string" | "num" | "user"}
+arg_type = {SOI ~ arg_flags? ~ arg_type_name ~ EOI}

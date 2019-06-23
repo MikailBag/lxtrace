@@ -1,4 +1,4 @@
-use ktrace;
+use ktrace::{self, EventPayload};
 
 fn child() {
     println!("child: hello, world");
@@ -17,6 +17,31 @@ fn main() {
             Ok(x) => x,
             Err(_) => break,
         };
-        println!("got {:?}", event);
+        match event.payload {
+            EventPayload::RawSysenter(_) => unreachable!(),
+            EventPayload::Attach => {
+                println!("[{}]: attached", event.pid);
+            }
+            EventPayload::Exit(exit_code) => {
+                println!("[{}]: exited, code={}", event.pid, exit_code);
+            }
+            EventPayload::Sysenter(raw_data, data) => match data {
+                Some(data) => {
+                    println!("[{}]: syscall {}()", event.pid, &data.name);
+                }
+                None => println!(
+                    "[{}]: unknown syscall {}({}, {}, {}, {}, {}, {})",
+                    event.pid,
+                    raw_data.syscall_id,
+                    raw_data.args[0],
+                    raw_data.args[1],
+                    raw_data.args[2],
+                    raw_data.args[3],
+                    raw_data.args[4],
+                    raw_data.args[5]
+                ),
+            },
+            EventPayload::Eos => {}
+        }
     }
 }

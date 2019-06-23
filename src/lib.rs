@@ -1,8 +1,9 @@
-use nix::{
-    sys::{ptrace, wait::WaitStatus},
-    unistd::Pid,
-};
-use std::{collections::HashMap, mem, os::unix::io::RawFd};
+mod magic;
+mod syscall_decode;
+mod tracer;
+
+use nix::sys::ptrace;
+use std::{mem, os::unix::io::RawFd};
 use tiny_nix_ipc::Socket;
 
 pub struct SpawnOptions {
@@ -17,9 +18,8 @@ pub enum Payload {
 
 #[derive(Debug)]
 pub enum DecodedArg {
-    NumSigned(u64),
-    NumUnsigned(i64),
-    Handle(u32, u64),
+    Num(i128),
+    Handle(u32 /*raw fd value*/, Option<u64> /* ray id*/),
     String(String),
     Flags(u64, Vec<String>),
     Unknown,
@@ -33,19 +33,29 @@ impl Default for DecodedArg {
 
 #[repr(C)]
 #[derive(Default, Debug)]
+pub struct RawSyscall {
+    pub syscall_id: u64,
+    pub args: [u64; 6],
+}
+
+#[derive(Debug)]
 pub struct Syscall {
-    count: u8,
-    syscall_id: u64,
-    args: [u64; 6],
-    args_decoded: [DecodedArg; 6],
+    pub name: String,
+    pub args_decoded: [DecodedArg; 6],
+    pub arg_count: u8,
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub enum EventPayload {
     Attach,
-    Sysenter(Syscall),
+    /// Internal
+    RawSysenter(RawSyscall),
+    /// First field - raw syscall args as is in registers
+    /// Second field - parsed data
+    Sysenter(RawSyscall, Option<Syscall>),
     Exit(i32),
+    /// Internal
     /// for this event pid=0
     /// tracer is about to exit because all tracees have finished
     Eos,
@@ -57,6 +67,7 @@ pub struct Event {
     pub payload: EventPayload,
     pub pid: u32,
 }
+
 unsafe fn child(action: Payload) -> ! {
     ptrace::traceme().expect("ptrace(TRACEME) failed");
     if libc::raise(libc::SIGSTOP) == -1 {
@@ -80,6 +91,7 @@ unsafe fn child(action: Payload) -> ! {
 }
 
 type Res = Result<(), ()>;
+
 trait ResultExt {
     type Ok;
     fn conv(self) -> Result<Self::Ok, ()>;
@@ -92,108 +104,13 @@ impl<T, E> ResultExt for Result<T, E> {
     }
 }
 
-fn decode_syscall_args(regs: libc::user_regs_struct) -> Syscall {
-    let mut out = Syscall::default();
-    out.syscall_id = regs.orig_rax;
-    out.args[0] = regs.rdi;
-    out.args[1] = regs.rsi;
-    out.args[2] = regs.rdx;
-    out.args[3] = regs.r10;
-    out.args[4] = regs.r8;
-    out.args[5] = regs.r9;
-    out
-}
-
-struct ChildInfo {
-    in_syscall: bool,
-}
-
-unsafe fn parent(mut out: Socket) -> Res {
-    let pid_children = Pid::from_raw(-1);
-    let waitflag = Some(nix::sys::wait::WaitPidFlag::__WALL);
-    let mut num_children = 1; //at start, we have one tracee, started by run()
-    let mut children: HashMap<u32, ChildInfo> = HashMap::new();
-    while num_children != 0 {
-        let wstatus = nix::sys::wait::waitpid(pid_children, waitflag).conv()?;
-        let pid = wstatus.pid().unwrap().as_raw() as u32; // we don't use WNOHANG
-        let child_known = children.contains_key(&pid);
-        let mut should_resume = true;
-        let event = match (child_known, wstatus) {
-            (false, _) => {
-                ptrace::setoptions(
-                    Pid::from_raw(pid as i32),
-                    ptrace::Options::PTRACE_O_TRACESYSGOOD | ptrace::Options::PTRACE_O_EXITKILL,
-                )
-                .conv()?;
-
-                let new_child_info = ChildInfo { in_syscall: false };
-                children.insert(pid, new_child_info);
-
-                let event = Event {
-                    pid,
-                    payload: EventPayload::Attach,
-                };
-
-                Some(event)
-            }
-            (true, WaitStatus::Exited(_, exit_code)) => {
-                let ev_payload = EventPayload::Exit(exit_code);
-                let ev = Event {
-                    payload: ev_payload,
-                    pid,
-                };
-                children.remove(&pid);
-                num_children -= 1;
-                should_resume = false;
-                Some(ev)
-            }
-            (true, WaitStatus::PtraceSyscall(_)) => {
-                let cur_info = children.get(&pid).unwrap().clone(); // it's guaranteed here that get() returns Some
-                let started_syscall = !cur_info.in_syscall;
-                let new_info = ChildInfo {
-                    in_syscall: started_syscall,
-                };
-                children.insert(pid, new_info);
-
-                if started_syscall {
-                    let regs = nix::sys::ptrace::getregs(Pid::from_raw(pid as i32)).conv()?;
-                    let params = decode_syscall_args(regs);
-                    let ev_payload = EventPayload::Sysenter(params);
-                    let ev = Event {
-                        pid,
-                        payload: ev_payload,
-                    };
-                    Some(ev)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        };
-        if let Some(ev) = event {
-            out.send_struct(&ev, None).conv()?;
-        }
-        if should_resume {
-            // resume again, if child hasn't finished yet
-            ptrace::syscall(Pid::from_raw(pid as i32)).conv()?;
-        }
-    }
-    let event = Event {
-        pid: 0,
-        payload: EventPayload::Eos,
-    };
-    out.send_struct(&event, None).conv()?;
-
-    Ok(())
-}
-
 unsafe fn split(payload: Payload, out: Socket) -> ! {
     let res = libc::fork();
     if res == -1 {
         libc::exit(1);
     }
     if res != 0 {
-        parent(out).ok();
+        tracer::parent(out).ok();
     } else {
         mem::forget(out);
         child(payload);
@@ -207,17 +124,37 @@ pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> R
     if res == -1 {
         return Err(());
     }
+    let magic_db = magic_init();
+    let mut syscall_decoder = syscall_decode::Decoder::new(&magic_db);
     if res != 0 {
         mem::forget(snd);
         loop {
             let msg = rcv.recv_struct::<Event, [RawFd; 0]>().conv()?.0;
-            if let EventPayload::Eos = msg.payload {
-                break Ok(());
+            match msg.payload {
+                EventPayload::Eos => {
+                    break Ok(());
+                }
+                EventPayload::RawSysenter(raw_sysenter) => {
+                    let res = syscall_decoder.process(&raw_sysenter);
+                    let new_msg = Event {
+                        pid: msg.pid,
+                        payload: EventPayload::Sysenter(raw_sysenter, res),
+                    };
+                    out.send(new_msg).conv()?;
+                }
+                _ => {
+                    out.send(msg).conv()?;
+                }
             }
-            out.send(msg).conv()?;
         }
     } else {
         mem::forget(rcv);
         split(payload, snd)
     }
+}
+
+static MAGIC: &str = include_str!("../magic.json");
+
+fn magic_init() -> magic::MagicDb {
+    magic::init(&serde_json::from_str(MAGIC).unwrap())
 }
