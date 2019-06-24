@@ -67,7 +67,12 @@ fn print_event(event: Event) {
 
 fn main() {
     let (sender, receiver) = crossbeam::channel::unbounded();
-    let payload = ktrace::Payload::Fn(Box::new(child));
+    let cmd_args = ktrace::SpawnOptions {
+        argv: vec!["ls".to_string()],
+        env: vec![]
+    };
+    let payload = ktrace::Payload::Cmd(cmd_args);
+    //let payload = ktrace::Payload::Fn(Box::new(child));
     unsafe {
         // we spawn new thread, because kthread will block it until child finishes
         std::thread::spawn(move || {
