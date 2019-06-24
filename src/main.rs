@@ -1,9 +1,5 @@
 use ktrace::{self, DecodedArg, Event, EventPayload};
 
-fn child() {
-    println!("child: hello, world");
-}
-
 fn print_data(arg: DecodedArg) {
     match arg {
         DecodedArg::Num(num) => print!("{}", num),

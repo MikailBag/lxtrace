@@ -39,7 +39,7 @@ pub(crate) unsafe fn parent(mut out: Socket, mut decoder: Decoder) -> Res {
             (false, _) => {
                 ptrace::setoptions(
                     Pid::from_raw(pid as i32),
-                    ptrace::Options::PTRACE_O_TRACESYSGOOD | ptrace::Options::PTRACE_O_EXITKILL,
+                    ptrace::Options::PTRACE_O_TRACESYSGOOD | ptrace::Options::PTRACE_O_EXITKILL | ptrace::Options::PTRACE_O_TRACEFORK | ptrace::Options::PTRACE_O_TRACECLONE | ptrace::Options::PTRACE_O_TRACEVFORK,
                 )
                 .conv()?;
 

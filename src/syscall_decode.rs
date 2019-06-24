@@ -50,7 +50,6 @@ impl<'a> Decoder<'a> {
             DataKind::Fd => DecodedArg::Handle(value as u32, None),
             DataKind::Number => DecodedArg::Num(value as i128),
             DataKind::String => {
-                dbg!(raw_args);
                 let mut result = DecodedArg::Unknown;
                 if let Some(len_arg) = data_type.len_arg {
                     dbg!(len_arg);
