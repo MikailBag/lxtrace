@@ -1,8 +1,12 @@
+#![feature(try_reserve)]
+
 mod magic;
 mod syscall_decode;
 mod tracer;
 
+use crate::syscall_decode::Decoder;
 use nix::sys::ptrace;
+use serde::{Deserialize, Serialize};
 use std::{mem, os::unix::io::RawFd};
 use tiny_nix_ipc::Socket;
 
@@ -16,7 +20,7 @@ pub enum Payload {
     Cmd(SpawnOptions),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum DecodedArg {
     Num(i128),
     Handle(u32 /*raw fd value*/, Option<u64> /* ray id*/),
@@ -32,25 +36,22 @@ impl Default for DecodedArg {
 }
 
 #[repr(C)]
-#[derive(Default, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawSyscall {
     pub syscall_id: u64,
     pub args: [u64; 6],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Syscall {
     pub name: String,
-    pub args_decoded: [DecodedArg; 6],
-    pub arg_count: u8,
+    pub args_decoded: Vec<DecodedArg>,
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum EventPayload {
     Attach,
-    /// Internal
-    RawSysenter(RawSyscall),
     /// First field - raw syscall args as is in registers
     /// Second field - parsed data
     Sysenter(RawSyscall, Option<Syscall>),
@@ -62,7 +63,7 @@ pub enum EventPayload {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Event {
     pub payload: EventPayload,
     pub pid: u32,
@@ -104,13 +105,13 @@ impl<T, E> ResultExt for Result<T, E> {
     }
 }
 
-unsafe fn split(payload: Payload, out: Socket) -> ! {
+unsafe fn split(payload: Payload, out: Socket, decoder: Decoder) -> ! {
     let res = libc::fork();
     if res == -1 {
         libc::exit(1);
     }
     if res != 0 {
-        tracer::parent(out).ok();
+        tracer::parent(out, decoder).ok();
     } else {
         mem::forget(out);
         child(payload);
@@ -120,27 +121,22 @@ unsafe fn split(payload: Payload, out: Socket) -> ! {
 
 pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> Res {
     let (mut rcv, snd) = tiny_nix_ipc::Socket::new_socketpair().conv()?;
+
+    let magic_db = magic_init();
+    let syscall_decoder = syscall_decode::Decoder::new(&magic_db);
+
     let res = libc::fork();
     if res == -1 {
         return Err(());
     }
-    let magic_db = magic_init();
-    let mut syscall_decoder = syscall_decode::Decoder::new(&magic_db);
+
     if res != 0 {
         mem::forget(snd);
         loop {
-            let msg = rcv.recv_struct::<Event, [RawFd; 0]>().conv()?.0;
+            let msg = rcv.recv_json::<Event, [RawFd; 0]>(4096).conv()?.0;
             match msg.payload {
                 EventPayload::Eos => {
                     break Ok(());
-                }
-                EventPayload::RawSysenter(raw_sysenter) => {
-                    let res = syscall_decoder.process(&raw_sysenter);
-                    let new_msg = Event {
-                        pid: msg.pid,
-                        payload: EventPayload::Sysenter(raw_sysenter, res),
-                    };
-                    out.send(new_msg).conv()?;
                 }
                 _ => {
                     out.send(msg).conv()?;
@@ -149,7 +145,7 @@ pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> R
         }
     } else {
         mem::forget(rcv);
-        split(payload, snd)
+        split(payload, snd, syscall_decoder)
     }
 }
 

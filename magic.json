@@ -2,8 +2,8 @@
     "id": 1,
     "name": "write",
     "arg_count": 3,
-    "arg1": "(in)fd",
-    "arg2": "(in)string",
-    "arg3": "(in)num",
-    "ret": "num"
+    "arg1": "in,kind=fd",
+    "arg2": "in,kind=buf,len=3",
+    "arg3": "in,kind=num",
+    "ret": "kind=num"
 }]

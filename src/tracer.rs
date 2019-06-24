@@ -1,4 +1,4 @@
-use crate::{Event, EventPayload, RawSyscall, Res, ResultExt};
+use crate::{syscall_decode::Decoder, Event, EventPayload, RawSyscall, Res, ResultExt};
 use nix::{
     sys::{ptrace, wait::WaitStatus},
     unistd::Pid,
@@ -11,7 +11,10 @@ struct ChildInfo {
 }
 
 fn decode_syscall_args(regs: libc::user_regs_struct) -> RawSyscall {
-    let mut out = RawSyscall::default();
+    let mut out = RawSyscall {
+        syscall_id: 0,
+        args: [0; 6],
+    };
     out.syscall_id = regs.orig_rax;
     out.args[0] = regs.rdi;
     out.args[1] = regs.rsi;
@@ -22,7 +25,7 @@ fn decode_syscall_args(regs: libc::user_regs_struct) -> RawSyscall {
     out
 }
 
-pub unsafe fn parent(mut out: Socket) -> Res {
+pub(crate) unsafe fn parent(mut out: Socket, mut decoder: Decoder) -> Res {
     let pid_children = Pid::from_raw(-1);
     let waitflag = Some(nix::sys::wait::WaitPidFlag::__WALL);
     let mut num_children = 1; //at start, we have one tracee, started by run()
@@ -72,7 +75,8 @@ pub unsafe fn parent(mut out: Socket) -> Res {
                 if started_syscall {
                     let regs = nix::sys::ptrace::getregs(Pid::from_raw(pid as i32)).conv()?;
                     let params = decode_syscall_args(regs);
-                    let ev_payload = EventPayload::RawSysenter(params);
+                    let decoded_params = decoder.process(&params, Pid::from_raw(pid as i32));
+                    let ev_payload = EventPayload::Sysenter(params, decoded_params);
                     let ev = Event {
                         pid,
                         payload: ev_payload,
@@ -85,7 +89,7 @@ pub unsafe fn parent(mut out: Socket) -> Res {
             _ => None,
         };
         if let Some(ev) = event {
-            out.send_struct(&ev, None).conv()?;
+            out.send_json(&ev, None).conv()?;
         }
         if should_resume {
             // resume again, if child hasn't finished yet
@@ -96,7 +100,7 @@ pub unsafe fn parent(mut out: Socket) -> Res {
         pid: 0,
         payload: EventPayload::Eos,
     };
-    out.send_struct(&event, None).conv()?;
+    out.send_json(&event, None).conv()?;
 
     Ok(())
 }
