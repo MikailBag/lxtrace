@@ -39,7 +39,11 @@ pub(crate) unsafe fn parent(mut out: Socket, mut decoder: Decoder) -> Res {
             (false, _) => {
                 ptrace::setoptions(
                     Pid::from_raw(pid as i32),
-                    ptrace::Options::PTRACE_O_TRACESYSGOOD | ptrace::Options::PTRACE_O_EXITKILL | ptrace::Options::PTRACE_O_TRACEFORK | ptrace::Options::PTRACE_O_TRACECLONE | ptrace::Options::PTRACE_O_TRACEVFORK,
+                    ptrace::Options::PTRACE_O_TRACESYSGOOD
+                        | ptrace::Options::PTRACE_O_EXITKILL
+                        | ptrace::Options::PTRACE_O_TRACEFORK
+                        | ptrace::Options::PTRACE_O_TRACECLONE
+                        | ptrace::Options::PTRACE_O_TRACEVFORK,
                 )
                 .conv()?;
 
@@ -65,7 +69,7 @@ pub(crate) unsafe fn parent(mut out: Socket, mut decoder: Decoder) -> Res {
                 Some(ev)
             }
             (true, WaitStatus::PtraceSyscall(_)) => {
-                let cur_info = children.get(&pid).unwrap().clone(); // it's guaranteed here that get() returns Some
+                let cur_info = children.get(&pid).unwrap(); // it's guaranteed here that get() returns Some
                 let started_syscall = !cur_info.in_syscall;
                 let new_info = ChildInfo {
                     in_syscall: started_syscall,

@@ -48,11 +48,10 @@ impl<'a> Decoder<'a> {
     ) -> DecodedArg {
         match data_type.kind {
             DataKind::Fd => DecodedArg::Handle(value as u32, None),
-            DataKind::Number => DecodedArg::Num(value as i128),
+            DataKind::Number => DecodedArg::Num(i128::from(value)),
             DataKind::String => {
                 let mut result = DecodedArg::Unknown;
                 if let Some(len_arg) = data_type.len_arg {
-                    dbg!(len_arg);
                     let read_base = value as usize;
                     let read_cnt = raw_args.args[len_arg as usize] as usize;
                     if let Some(buf) = self.try_read_string(read_base, read_cnt, subject) {

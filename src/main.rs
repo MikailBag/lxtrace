@@ -1,4 +1,6 @@
 use ktrace::{self, DecodedArg, Event, EventPayload};
+use structopt::StructOpt;
+use std::process::exit;
 
 fn print_data(arg: DecodedArg) {
     match arg {
@@ -61,14 +63,40 @@ fn print_event(event: Event) {
     }
 }
 
+#[derive(StructOpt)]
+struct Opt {
+    #[structopt(long = "arg", short = "a")]
+    args: Vec<String>,
+    #[structopt(long = "env", short = "e")]
+    env: Vec<String>,
+}
+
+fn split_env_item(s: &str) -> (String, String) {
+    if !s.contains('=') {
+        eprintln!("env var must be passed as NAME=VALUE");
+        exit(1);
+    }
+    let mut it = s.splitn(2, '=');
+
+    (it.next().unwrap().to_string(), it.next().unwrap().to_string())
+}
+
 fn main() {
+    let opt: Opt = Opt::from_args();
+    if opt.args.is_empty() {
+        eprintln!("executable not provided");
+        exit(1);
+    }
     let (sender, receiver) = crossbeam::channel::unbounded();
     let cmd_args = ktrace::SpawnOptions {
-        argv: vec!["ls".to_string()],
-        env: vec![]
+        argv: opt.args,
+        env: opt
+            .env
+            .into_iter()
+            .map(|p| split_env_item(&p))
+            .collect(),
     };
     let payload = ktrace::Payload::Cmd(cmd_args);
-    //let payload = ktrace::Payload::Fn(Box::new(child));
     unsafe {
         // we spawn new thread, because kthread will block it until child finishes
         std::thread::spawn(move || {
