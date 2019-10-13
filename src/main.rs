@@ -1,6 +1,6 @@
 use ktrace::{self, DecodedArg, Event, EventPayload};
-use structopt::StructOpt;
 use std::process::exit;
+use structopt::StructOpt;
 
 fn print_data(arg: DecodedArg) {
     match arg {
@@ -27,7 +27,7 @@ fn print_sysenter_event(ev: Event) {
     match ev.payload {
         EventPayload::Sysenter(raw_data, data) => match data {
             Some(data) => {
-                print!("[{}]: syscall {}(", ev.pid, &data.name);
+                print!("[{}]: syscall {} started (", ev.pid, &data.name);
                 for arg in data.args_decoded {
                     print_data(arg);
                     print!(","); // TODO properly put commas and spacing
@@ -35,7 +35,7 @@ fn print_sysenter_event(ev: Event) {
                 println!(")");
             }
             None => println!(
-                "[{}]: unknown syscall {}({}, {}, {}, {}, {}, {})",
+                "[{}]: unknown syscall start {}({}, {}, {}, {}, {}, {})",
                 ev.pid,
                 raw_data.syscall_id,
                 raw_data.args[0],
@@ -65,10 +65,12 @@ fn print_event(event: Event) {
 
 #[derive(StructOpt)]
 struct Opt {
-    #[structopt(long = "arg", short = "a")]
+    #[structopt(last = true)]
     args: Vec<String>,
-    #[structopt(long = "env", short = "e")]
+    #[structopt(long, short = "e")]
     env: Vec<String>,
+    #[structopt(long, short = "j")]
+    json: bool,
 }
 
 fn split_env_item(s: &str) -> (String, String) {
@@ -78,7 +80,10 @@ fn split_env_item(s: &str) -> (String, String) {
     }
     let mut it = s.splitn(2, '=');
 
-    (it.next().unwrap().to_string(), it.next().unwrap().to_string())
+    (
+        it.next().unwrap().to_string(),
+        it.next().unwrap().to_string(),
+    )
 }
 
 fn main() {
@@ -90,15 +95,11 @@ fn main() {
     let (sender, receiver) = crossbeam::channel::unbounded();
     let cmd_args = ktrace::SpawnOptions {
         argv: opt.args,
-        env: opt
-            .env
-            .into_iter()
-            .map(|p| split_env_item(&p))
-            .collect(),
+        env: opt.env.into_iter().map(|p| split_env_item(&p)).collect(),
     };
     let payload = ktrace::Payload::Cmd(cmd_args);
     unsafe {
-        // we spawn new thread, because kthread will block it until child finishes
+        // we spawn new thread, because ktrace will block it until child finishes
         std::thread::spawn(move || {
             ktrace::run(payload, sender).unwrap();
         });
@@ -106,8 +107,15 @@ fn main() {
     loop {
         let event = match receiver.recv() {
             Ok(x) => x,
-            Err(_) => break,
+            Err(_) => {
+                break;
+            }
         };
-        print_event(event);
+        if opt.json {
+            let s = serde_json::to_string(&event).expect("failed to serialize");
+            println!("{}", s);
+        } else {
+            print_event(event);
+        }
     }
 }

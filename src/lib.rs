@@ -1,6 +1,4 @@
-#![feature(try_reserve)]
-
-mod magic;
+pub mod magic;
 mod syscall_decode;
 mod tracer;
 
@@ -122,8 +120,8 @@ unsafe fn split(payload: Payload, out: Socket, decoder: Decoder) -> ! {
 pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> Res {
     let (mut rcv, snd) = tiny_nix_ipc::Socket::new_socketpair().conv()?;
 
-    let magic_db = magic_init();
-    let syscall_decoder = syscall_decode::Decoder::new(&magic_db);
+    let magic = magic_init();
+    let syscall_decoder = syscall_decode::Decoder::new(&magic);
 
     let res = libc::fork();
     if res == -1 {
@@ -149,8 +147,8 @@ pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> R
     }
 }
 
-static MAGIC: &str = include_str!("../magic.json");
+static MAGIC: &str = include_str!("../magic.ktrace");
 
-fn magic_init() -> magic::MagicDb {
-    magic::init(&serde_json::from_str(MAGIC).unwrap())
+pub fn magic_init() -> magic::Magic {
+    magic::init(MAGIC)
 }

@@ -1,0 +1,1440 @@
+#[id = 0]
+syscall read {
+    ret: num
+}
+
+#[id = 1]
+syscall write {
+    ret: num
+}
+
+#[id = 2]
+syscall open {
+    pathname: zstring,
+    flags: num,
+    mode: num,
+    ret: fd
+}
+
+#[id = 3]
+syscall close {
+    fd: fd,
+    ret: num
+}
+
+#[id = 4]
+syscall stat {
+    ret: num
+}
+
+#[id = 5]
+syscall fstat {
+    ret: num
+}
+
+#[id = 6]
+syscall lstat {
+    ret: num
+}
+
+#[id = 7]
+syscall poll {
+    ret: num
+}
+
+#[id = 8]
+syscall lseek {
+    ret: num
+}
+
+#[id = 9]
+syscall mmap {
+    ret: num
+}
+
+#[id = 10]
+syscall mprotect {
+    ret: num
+}
+
+#[id = 11]
+syscall munmap {
+    ret: num
+}
+
+#[id = 12]
+syscall brk {
+    ret: num
+}
+
+#[id = 13]
+syscall rt_sigaction {
+    ret: num
+}
+
+#[id = 14]
+syscall rt_sigprocmask {
+    ret: num
+}
+
+#[id = 15]
+syscall rt_sigreturn {
+    ret: num
+}
+
+#[id = 16]
+syscall ioctl {
+    ret: num
+}
+
+#[id = 17]
+syscall pread64 {
+    ret: num
+}
+
+#[id = 18]
+syscall pwrite64 {
+    ret: num
+}
+
+#[id = 19]
+syscall readv {
+    ret: num
+}
+
+#[id = 20]
+syscall writev {
+    ret: num
+}
+
+#[id = 21]
+syscall access {
+    pathname: zstring,
+    mode: num,
+    ret: num
+}
+
+#[id = 22]
+syscall pipe {
+    ret: num
+}
+
+#[id = 23]
+syscall select {
+    ret: num
+}
+
+#[id = 24]
+syscall sched_yield {
+    ret: num
+}
+
+#[id = 25]
+syscall mremap {
+    ret: num
+}
+
+#[id = 26]
+syscall msync {
+    ret: num
+}
+
+#[id = 27]
+syscall mincore {
+    ret: num
+}
+
+#[id = 28]
+syscall madvise {
+    ret: num
+}
+
+#[id = 29]
+syscall shmget {
+    ret: num
+}
+
+#[id = 30]
+syscall shmat {
+    ret: num
+}
+
+#[id = 31]
+syscall shmctl {
+    ret: num
+}
+
+#[id = 32]
+syscall dup {
+    ret: num
+}
+
+#[id = 33]
+syscall dup2 {
+    ret: num
+}
+
+#[id = 34]
+syscall pause {
+    ret: num
+}
+
+#[id = 35]
+syscall nanosleep {
+    ret: num
+}
+
+#[id = 36]
+syscall getitimer {
+    ret: num
+}
+
+#[id = 37]
+syscall alarm {
+    ret: num
+}
+
+#[id = 38]
+syscall setitimer {
+    ret: num
+}
+
+#[id = 39]
+syscall getpid {
+    ret: num
+}
+
+#[id = 40]
+syscall sendfile {
+    ret: num
+}
+
+#[id = 41]
+syscall socket {
+    ret: num
+}
+
+#[id = 42]
+syscall connect {
+    ret: num
+}
+
+#[id = 43]
+syscall accept {
+    ret: num
+}
+
+#[id = 44]
+syscall sendto {
+    ret: num
+}
+
+#[id = 45]
+syscall recvfrom {
+    ret: num
+}
+
+#[id = 46]
+syscall sendmsg {
+    ret: num
+}
+
+#[id = 47]
+syscall recvmsg {
+    ret: num
+}
+
+#[id = 48]
+syscall shutdown {
+    ret: num
+}
+
+#[id = 49]
+syscall bind {
+    ret: num
+}
+
+#[id = 50]
+syscall listen {
+    ret: num
+}
+
+#[id = 51]
+syscall getsockname {
+    ret: num
+}
+
+#[id = 52]
+syscall getpeername {
+    ret: num
+}
+
+#[id = 53]
+syscall socketpair {
+    ret: num
+}
+
+#[id = 54]
+syscall setsockopt {
+    ret: num
+}
+
+#[id = 55]
+syscall getsockopt {
+    ret: num
+}
+
+#[id = 56]
+syscall clone {
+    ret: num
+}
+
+#[id = 57]
+syscall fork {
+    ret: num
+}
+
+#[id = 58]
+syscall vfork {
+    ret: num
+}
+
+#[id = 59]
+syscall execve {
+    ret: num
+}
+
+#[id = 60]
+syscall exit {
+    ret: num
+}
+
+#[id = 61]
+syscall wait4 {
+    ret: num
+}
+
+#[id = 62]
+syscall kill {
+    ret: num
+}
+
+#[id = 63]
+syscall uname {
+    ret: num
+}
+
+#[id = 64]
+syscall semget {
+    ret: num
+}
+
+#[id = 65]
+syscall semop {
+    ret: num
+}
+
+#[id = 66]
+syscall semctl {
+    ret: num
+}
+
+#[id = 67]
+syscall shmdt {
+    ret: num
+}
+
+#[id = 68]
+syscall msgget {
+    ret: num
+}
+
+#[id = 69]
+syscall msgsnd {
+    ret: num
+}
+
+#[id = 70]
+syscall msgrcv {
+    ret: num
+}
+
+#[id = 71]
+syscall msgctl {
+    ret: num
+}
+
+#[id = 72]
+syscall fcntl {
+    ret: num
+}
+
+#[id = 73]
+syscall flock {
+    ret: num
+}
+
+#[id = 74]
+syscall fsync {
+    ret: num
+}
+
+#[id = 75]
+syscall fdatasync {
+    ret: num
+}
+
+#[id = 76]
+syscall truncate {
+    ret: num
+}
+
+#[id = 77]
+syscall ftruncate {
+    ret: num
+}
+
+#[id = 78]
+syscall getdents {
+    ret: num
+}
+
+#[id = 79]
+syscall getcwd {
+    ret: num
+}
+
+#[id = 80]
+syscall chdir {
+    ret: num
+}
+
+#[id = 81]
+syscall fchdir {
+    ret: num
+}
+
+#[id = 82]
+syscall rename {
+    ret: num
+}
+
+#[id = 83]
+syscall mkdir {
+    ret: num
+}
+
+#[id = 84]
+syscall rmdir {
+    ret: num
+}
+
+#[id = 85]
+syscall creat {
+    ret: num
+}
+
+#[id = 86]
+syscall link {
+    ret: num
+}
+
+#[id = 87]
+syscall unlink {
+    ret: num
+}
+
+#[id = 88]
+syscall symlink {
+    ret: num
+}
+
+#[id = 89]
+syscall readlink {
+    ret: num
+}
+
+#[id = 90]
+syscall chmod {
+    ret: num
+}
+
+#[id = 91]
+syscall fchmod {
+    ret: num
+}
+
+#[id = 92]
+syscall chown {
+    ret: num
+}
+
+#[id = 93]
+syscall fchown {
+    ret: num
+}
+
+#[id = 94]
+syscall lchown {
+    ret: num
+}
+
+#[id = 95]
+syscall umask {
+    ret: num
+}
+
+#[id = 96]
+syscall gettimeofday {
+    ret: num
+}
+
+#[id = 97]
+syscall getrlimit {
+    ret: num
+}
+
+#[id = 98]
+syscall getrusage {
+    ret: num
+}
+
+#[id = 99]
+syscall sysinfo {
+    ret: num
+}
+
+#[id = 100]
+syscall times {
+    ret: num
+}
+
+#[id = 101]
+syscall ptrace {
+    ret: num
+}
+
+#[id = 102]
+syscall getuid {
+    ret: num
+}
+
+#[id = 103]
+syscall syslog {
+    ret: num
+}
+
+#[id = 104]
+syscall getgid {
+    ret: num
+}
+
+#[id = 105]
+syscall setuid {
+    ret: num
+}
+
+#[id = 106]
+syscall setgid {
+    ret: num
+}
+
+#[id = 107]
+syscall geteuid {
+    ret: num
+}
+
+#[id = 108]
+syscall getegid {
+    ret: num
+}
+
+#[id = 109]
+syscall setpgid {
+    ret: num
+}
+
+#[id = 110]
+syscall getppid {
+    ret: num
+}
+
+#[id = 111]
+syscall getpgrp {
+    ret: num
+}
+
+#[id = 112]
+syscall setsid {
+    ret: num
+}
+
+#[id = 113]
+syscall setreuid {
+    ret: num
+}
+
+#[id = 114]
+syscall setregid {
+    ret: num
+}
+
+#[id = 115]
+syscall getgroups {
+    ret: num
+}
+
+#[id = 116]
+syscall setgroups {
+    ret: num
+}
+
+#[id = 117]
+syscall setresuid {
+    ret: num
+}
+
+#[id = 118]
+syscall getresuid {
+    ret: num
+}
+
+#[id = 119]
+syscall setresgid {
+    ret: num
+}
+
+#[id = 120]
+syscall getresgid {
+    ret: num
+}
+
+#[id = 121]
+syscall getpgid {
+    ret: num
+}
+
+#[id = 122]
+syscall setfsuid {
+    ret: num
+}
+
+#[id = 123]
+syscall setfsgid {
+    ret: num
+}
+
+#[id = 124]
+syscall getsid {
+    ret: num
+}
+
+#[id = 125]
+syscall capget {
+    ret: num
+}
+
+#[id = 126]
+syscall capset {
+    ret: num
+}
+
+#[id = 127]
+syscall rt_sigpending {
+    ret: num
+}
+
+#[id = 128]
+syscall rt_sigtimedwait {
+    ret: num
+}
+
+#[id = 129]
+syscall rt_sigqueueinfo {
+    ret: num
+}
+
+#[id = 130]
+syscall rt_sigsuspend {
+    ret: num
+}
+
+#[id = 131]
+syscall sigaltstack {
+    ret: num
+}
+
+#[id = 132]
+syscall utime {
+    ret: num
+}
+
+#[id = 133]
+syscall mknod {
+    ret: num
+}
+
+#[id = 134]
+syscall uselib {
+    ret: num
+}
+
+#[id = 135]
+syscall personality {
+    ret: num
+}
+
+#[id = 136]
+syscall ustat {
+    ret: num
+}
+
+#[id = 137]
+syscall statfs {
+    ret: num
+}
+
+#[id = 138]
+syscall fstatfs {
+    ret: num
+}
+
+#[id = 139]
+syscall sysfs {
+    ret: num
+}
+
+#[id = 140]
+syscall getpriority {
+    ret: num
+}
+
+#[id = 141]
+syscall setpriority {
+    ret: num
+}
+
+#[id = 142]
+syscall sched_setparam {
+    ret: num
+}
+
+#[id = 143]
+syscall sched_getparam {
+    ret: num
+}
+
+#[id = 144]
+syscall sched_setscheduler {
+    ret: num
+}
+
+#[id = 145]
+syscall sched_getscheduler {
+    ret: num
+}
+
+#[id = 146]
+syscall sched_get_priority_max {
+    ret: num
+}
+
+#[id = 147]
+syscall sched_get_priority_min {
+    ret: num
+}
+
+#[id = 148]
+syscall sched_rr_get_interval {
+    ret: num
+}
+
+#[id = 149]
+syscall mlock {
+    ret: num
+}
+
+#[id = 150]
+syscall munlock {
+    ret: num
+}
+
+#[id = 151]
+syscall mlockall {
+    ret: num
+}
+
+#[id = 152]
+syscall munlockall {
+    ret: num
+}
+
+#[id = 153]
+syscall vhangup {
+    ret: num
+}
+
+#[id = 154]
+syscall modify_ldt {
+    ret: num
+}
+
+#[id = 155]
+syscall pivot_root {
+    ret: num
+}
+
+#[id = 156]
+syscall _sysctl {
+    ret: num
+}
+
+#[id = 157]
+syscall prctl {
+    ret: num
+}
+
+#[id = 158]
+syscall arch_prctl {
+    ret: num
+}
+
+#[id = 159]
+syscall adjtimex {
+    ret: num
+}
+
+#[id = 160]
+syscall setrlimit {
+    ret: num
+}
+
+#[id = 161]
+syscall chroot {
+    ret: num
+}
+
+#[id = 162]
+syscall sync {
+    ret: num
+}
+
+#[id = 163]
+syscall acct {
+    ret: num
+}
+
+#[id = 164]
+syscall settimeofday {
+    ret: num
+}
+
+#[id = 165]
+syscall mount {
+    ret: num
+}
+
+#[id = 166]
+syscall umount2 {
+    ret: num
+}
+
+#[id = 167]
+syscall swapon {
+    ret: num
+}
+
+#[id = 168]
+syscall swapoff {
+    ret: num
+}
+
+#[id = 169]
+syscall reboot {
+    ret: num
+}
+
+#[id = 170]
+syscall sethostname {
+    ret: num
+}
+
+#[id = 171]
+syscall setdomainname {
+    ret: num
+}
+
+#[id = 172]
+syscall iopl {
+    ret: num
+}
+
+#[id = 173]
+syscall ioperm {
+    ret: num
+}
+
+#[id = 174]
+syscall create_module {
+    ret: num
+}
+
+#[id = 175]
+syscall init_module {
+    ret: num
+}
+
+#[id = 176]
+syscall delete_module {
+    ret: num
+}
+
+#[id = 177]
+syscall get_kernel_syms {
+    ret: num
+}
+
+#[id = 178]
+syscall query_module {
+    ret: num
+}
+
+#[id = 179]
+syscall quotactl {
+    ret: num
+}
+
+#[id = 180]
+syscall nfsservctl {
+    ret: num
+}
+
+#[id = 181]
+syscall getpmsg {
+    ret: num
+}
+
+#[id = 182]
+syscall putpmsg {
+    ret: num
+}
+
+#[id = 183]
+syscall afs_syscall {
+    ret: num
+}
+
+#[id = 184]
+syscall tuxcall {
+    ret: num
+}
+
+#[id = 185]
+syscall security {
+    ret: num
+}
+
+#[id = 186]
+syscall gettid {
+    ret: num
+}
+
+#[id = 187]
+syscall readahead {
+    ret: num
+}
+
+#[id = 188]
+syscall setxattr {
+    ret: num
+}
+
+#[id = 189]
+syscall lsetxattr {
+    ret: num
+}
+
+#[id = 190]
+syscall fsetxattr {
+    ret: num
+}
+
+#[id = 191]
+syscall getxattr {
+    ret: num
+}
+
+#[id = 192]
+syscall lgetxattr {
+    ret: num
+}
+
+#[id = 193]
+syscall fgetxattr {
+    ret: num
+}
+
+#[id = 194]
+syscall listxattr {
+    ret: num
+}
+
+#[id = 195]
+syscall llistxattr {
+    ret: num
+}
+
+#[id = 196]
+syscall flistxattr {
+    ret: num
+}
+
+#[id = 197]
+syscall removexattr {
+    ret: num
+}
+
+#[id = 198]
+syscall lremovexattr {
+    ret: num
+}
+
+#[id = 199]
+syscall fremovexattr {
+    ret: num
+}
+
+#[id = 200]
+syscall tkill {
+    ret: num
+}
+
+#[id = 201]
+syscall time {
+    ret: num
+}
+
+#[id = 202]
+syscall futex {
+    ret: num
+}
+
+#[id = 203]
+syscall sched_setaffinity {
+    ret: num
+}
+
+#[id = 204]
+syscall sched_getaffinity {
+    ret: num
+}
+
+#[id = 205]
+syscall set_thread_area {
+    ret: num
+}
+
+#[id = 206]
+syscall io_setup {
+    ret: num
+}
+
+#[id = 207]
+syscall io_destroy {
+    ret: num
+}
+
+#[id = 208]
+syscall io_getevents {
+    ret: num
+}
+
+#[id = 209]
+syscall io_submit {
+    ret: num
+}
+
+#[id = 210]
+syscall io_cancel {
+    ret: num
+}
+
+#[id = 211]
+syscall get_thread_area {
+    ret: num
+}
+
+#[id = 212]
+syscall lookup_dcookie {
+    ret: num
+}
+
+#[id = 213]
+syscall epoll_create {
+    ret: num
+}
+
+#[id = 214]
+syscall epoll_ctl_old {
+    ret: num
+}
+
+#[id = 215]
+syscall epoll_wait_old {
+    ret: num
+}
+
+#[id = 216]
+syscall remap_file_pages {
+    ret: num
+}
+
+#[id = 217]
+syscall getdents64 {
+    ret: num
+}
+
+#[id = 218]
+syscall set_tid_address {
+    ret: num
+}
+
+#[id = 219]
+syscall restart_syscall {
+    ret: num
+}
+
+#[id = 220]
+syscall semtimedop {
+    ret: num
+}
+
+#[id = 221]
+syscall fadvise64 {
+    ret: num
+}
+
+#[id = 222]
+syscall timer_create {
+    ret: num
+}
+
+#[id = 223]
+syscall timer_settime {
+    ret: num
+}
+
+#[id = 224]
+syscall timer_gettime {
+    ret: num
+}
+
+#[id = 225]
+syscall timer_getoverrun {
+    ret: num
+}
+
+#[id = 226]
+syscall timer_delete {
+    ret: num
+}
+
+#[id = 227]
+syscall clock_settime {
+    ret: num
+}
+
+#[id = 228]
+syscall clock_gettime {
+    ret: num
+}
+
+#[id = 229]
+syscall clock_getres {
+    ret: num
+}
+
+#[id = 230]
+syscall clock_nanosleep {
+    ret: num
+}
+
+#[id = 231]
+syscall exit_group {
+    ret: num
+}
+
+#[id = 232]
+syscall epoll_wait {
+    ret: num
+}
+
+#[id = 233]
+syscall epoll_ctl {
+    ret: num
+}
+
+#[id = 234]
+syscall tgkill {
+    ret: num
+}
+
+#[id = 235]
+syscall utimes {
+    ret: num
+}
+
+#[id = 236]
+syscall vserver {
+    ret: num
+}
+
+#[id = 237]
+syscall mbind {
+    ret: num
+}
+
+#[id = 238]
+syscall set_mempolicy {
+    ret: num
+}
+
+#[id = 239]
+syscall get_mempolicy {
+    ret: num
+}
+
+#[id = 240]
+syscall mq_open {
+    ret: num
+}
+
+#[id = 241]
+syscall mq_unlink {
+    ret: num
+}
+
+#[id = 242]
+syscall mq_timedsend {
+    ret: num
+}
+
+#[id = 243]
+syscall mq_timedreceive {
+    ret: num
+}
+
+#[id = 244]
+syscall mq_notify {
+    ret: num
+}
+
+#[id = 245]
+syscall mq_getsetattr {
+    ret: num
+}
+
+#[id = 246]
+syscall kexec_load {
+    ret: num
+}
+
+#[id = 247]
+syscall waitid {
+    ret: num
+}
+
+#[id = 248]
+syscall add_key {
+    ret: num
+}
+
+#[id = 249]
+syscall request_key {
+    ret: num
+}
+
+#[id = 250]
+syscall keyctl {
+    ret: num
+}
+
+#[id = 251]
+syscall ioprio_set {
+    ret: num
+}
+
+#[id = 252]
+syscall ioprio_get {
+    ret: num
+}
+
+#[id = 253]
+syscall inotify_init {
+    ret: num
+}
+
+#[id = 254]
+syscall inotify_add_watch {
+    ret: num
+}
+
+#[id = 255]
+syscall inotify_rm_watch {
+    ret: num
+}
+
+#[id = 256]
+syscall migrate_pages {
+    ret: num
+}
+
+#[id = 257]
+syscall openat {
+    dirfd: fd,
+    pathname: zstring,
+    flags: num,
+    mode: num,
+    ret: num
+}
+
+#[id = 258]
+syscall mkdirat {
+    ret: num
+}
+
+#[id = 259]
+syscall mknodat {
+    ret: num
+}
+
+#[id = 260]
+syscall fchownat {
+    ret: num
+}
+
+#[id = 261]
+syscall futimesat {
+    ret: num
+}
+
+#[id = 262]
+syscall newfstatat {
+    ret: num
+}
+
+#[id = 263]
+syscall unlinkat {
+    ret: num
+}
+
+#[id = 264]
+syscall renameat {
+    ret: num
+}
+
+#[id = 265]
+syscall linkat {
+    ret: num
+}
+
+#[id = 266]
+syscall symlinkat {
+    ret: num
+}
+
+#[id = 267]
+syscall readlinkat {
+    ret: num
+}
+
+#[id = 268]
+syscall fchmodat {
+    ret: num
+}
+
+#[id = 269]
+syscall faccessat {
+    ret: num
+}
+
+#[id = 270]
+syscall pselect6 {
+    ret: num
+}
+
+#[id = 271]
+syscall ppoll {
+    ret: num
+}
+
+#[id = 272]
+syscall unshare {
+    ret: num
+}
+
+#[id = 273]
+syscall set_robust_list {
+    ret: num
+}
+
+#[id = 274]
+syscall get_robust_list {
+    ret: num
+}
+
+#[id = 275]
+syscall splice {
+    ret: num
+}
+
+#[id = 276]
+syscall tee {
+    ret: num
+}
+
+#[id = 277]
+syscall sync_file_range {
+    ret: num
+}
+
+#[id = 278]
+syscall vmsplice {
+    ret: num
+}
+
+#[id = 279]
+syscall move_pages {
+    ret: num
+}
+
+#[id = 280]
+syscall utimensat {
+    ret: num
+}
+
+#[id = 281]
+syscall epoll_pwait {
+    ret: num
+}
+
+#[id = 282]
+syscall signalfd {
+    ret: num
+}
+
+#[id = 283]
+syscall timerfd {
+    ret: num
+}
+
+#[id = 284]
+syscall eventfd {
+    ret: num
+}
+
+#[id = 285]
+syscall fallocate {
+    ret: num
+}
+

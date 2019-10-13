@@ -1,7 +1,30 @@
-Char = {'a'..'z'| ASCII_DIGIT}
-Word = {Char+}
-ArgTagSimple = {Word}
-ArgTagKV = {Word ~ "=" ~ Word}
-ArgTag = {ArgTagKV | ArgTagSimple}
-Arg = {SOI ~ (ArgTag ~ (","~ArgTag)*) | ""  ~ EOI}
+input = {SOI ~ item_def* ~ EOI}
 
+item_def = _{syscall_def}
+
+syscall_def = {attrs ~ "syscall" ~ ident ~ def_body}
+
+def_body = {"{" ~ (field_def ~ ("," ~ field_def)*)? ~ "}"}
+
+field_def = {ident ~ ":" ~ ident}
+
+attrs = {attrs_inner}
+attrs_inner = _{attr ~ (attrs_inner)? | ""}
+attr = {"#[" ~ ident ~ "=" ~ attr_val ~ "]"}
+
+attr_val = {number | string}
+ident = {string}
+
+number = @{"0" | num_digit_head ~ num_digit_any*}
+
+num_digit_head = {'1'..'9'}
+num_digit_any = {num_digit_head | "0"}
+
+
+string = @{string_char_head ~ string_char_any*}
+string_char_any = {string_char_head | '0'..'9'}
+string_char_head = {'a'..'z' | 'A'..'Z' | "_"}
+
+ws = _{WHITESPACE+}
+
+WHITESPACE = _{" " | "\t" | "\n" | "\r"}

@@ -16,3 +16,4 @@ tiny-nix-ipc = { git = "https://github.com/mikailbag/tiny-nix-ipc", features = [
 pest = "2.1.1"
 pest_derive = "2.1.0"
 structopt = "0.2.16"
+anyhow = "1.0.11"
