@@ -19,6 +19,8 @@ pub enum Payload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "data")]
+#[serde(rename_all = "kebab-case")]
 pub enum DecodedArg {
     Num(i128),
     Handle(u32 /*raw fd value*/, Option<u64> /* ray id*/),
@@ -48,6 +50,8 @@ pub struct Syscall {
 
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "data")]
+#[serde(rename_all = "kebab-case")]
 pub enum EventPayload {
     Attach,
     /// First field - raw syscall args as is in registers
