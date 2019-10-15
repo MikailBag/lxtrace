@@ -1441,3 +1441,11 @@ syscall fallocate {
     ret: num
 }
 
+
+#[id = 302]
+syscall prlimit64 {
+    pid: num,
+    resource: num,
+    new_rlim: num,
+    old_rlim: num
+}
