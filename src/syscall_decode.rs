@@ -106,7 +106,12 @@ impl<'a> Decoder<'a> {
             }
         };
         let it = syscall_spec.params().map(|(i, field_def)| {
-            self.decode_argument(syscall.args[i], self.magic.resolve_ty(&field_def.ty), pid, syscall)
+            self.decode_argument(
+                syscall.args[i],
+                self.magic.resolve_ty(&field_def.ty),
+                pid,
+                syscall,
+            )
         });
 
         Some(Syscall {

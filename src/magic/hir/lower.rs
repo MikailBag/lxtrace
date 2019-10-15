@@ -40,15 +40,18 @@ fn lower_def(def_ast: parse_tree::ItemDef) -> anyhow::Result<hir::ItemDef> {
 
 pub(in crate::magic) fn lower(pt: parse_tree::Input) -> anyhow::Result<hir::Hir> {
     Ok(hir::Hir {
-        defs: pt.defs().map(|def| {
-            let def_name = def.name().to_string();
-            match lower_def(def) {
-                ok @ Ok(_) => ok,
-                Err(err) => {
-                    Err(err.context(format!("failed to lower definition `{}`", def_name)))
+        defs: pt
+            .defs()
+            .map(|def| {
+                let def_name = def.name().to_string();
+                match lower_def(def) {
+                    ok @ Ok(_) => ok,
+                    Err(err) => {
+                        Err(err.context(format!("failed to lower definition `{}`", def_name)))
+                    }
                 }
-            }
-        }).collect::<Result<Vec<_>, _>>()?,
-        types: hir::ty_db::TyDb::default()
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+        types: hir::ty_db::TyDb::default(),
     })
 }

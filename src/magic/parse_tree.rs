@@ -28,7 +28,7 @@ macro_rules! define_node {
                 self.0.clone().into_inner()
             }
 
-#[allow(dead_code)]
+            #[allow(dead_code)]
             fn child_at(&self, i: usize) -> N<'a> {
                 self.children().skip(i).next().unwrap()
             }
@@ -77,7 +77,9 @@ impl<'a> SyscallDef<'a> {
     pub(super) fn name(&self) -> &str {
         checked_node_text(self.child_at(1), Rule::ident)
     }
-    pub(super) fn def_body(&self) -> DefBody {DefBody::new(self.child_at(2))}
+    pub(super) fn def_body(&self) -> DefBody {
+        DefBody::new(self.child_at(2))
+    }
 }
 
 define_node!(DefBody, Rule::def_body);
@@ -108,7 +110,7 @@ pub(super) enum ItemDef<'a> {
 impl<'a> ItemDef<'a> {
     pub(super) fn name(&self) -> &str {
         match self {
-            ItemDef::Syscall(def) => def.name()
+            ItemDef::Syscall(def) => def.name(),
         }
     }
 }

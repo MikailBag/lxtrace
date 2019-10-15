@@ -80,7 +80,10 @@ pub(crate) unsafe fn parent(mut out: Socket, mut decoder: Decoder) -> Res {
                     let regs = nix::sys::ptrace::getregs(Pid::from_raw(pid as i32)).conv()?;
                     let params = decode_syscall_args(regs);
                     let decoded_params = decoder.process(&params, Pid::from_raw(pid as i32));
-                    let ev_payload = EventPayload::Sysenter(params, decoded_params);
+                    let ev_payload = EventPayload::Sysenter {
+                        raw: params,
+                        decoded: decoded_params,
+                    };
                     let ev = Event {
                         pid,
                         payload: ev_payload,

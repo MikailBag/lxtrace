@@ -1,13 +1,13 @@
 //! High-level magic file representation
 pub(super) mod lower;
-mod ty_db;
 pub(super) mod ty_collect;
+mod ty_db;
 
 use super::ty::Ty;
 
 pub struct Hir {
     defs: Vec<ItemDef>,
-    types: ty_db::TyDb
+    types: ty_db::TyDb,
 }
 
 impl Hir {

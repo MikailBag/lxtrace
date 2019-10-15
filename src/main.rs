@@ -25,7 +25,10 @@ fn print_data(arg: DecodedArg) {
 
 fn print_sysenter_event(ev: Event) {
     match ev.payload {
-        EventPayload::Sysenter(raw_data, data) => match data {
+        EventPayload::Sysenter {
+            raw: raw_data,
+            decoded: data,
+        } => match data {
             Some(data) => {
                 print!("[{}]: syscall {} started (", ev.pid, &data.name);
                 for arg in data.args_decoded {
@@ -58,7 +61,7 @@ fn print_event(event: Event) {
         EventPayload::Exit(exit_code) => {
             println!("[{}]: exited, code={}", event.pid, exit_code);
         }
-        EventPayload::Sysenter(_, _) => print_sysenter_event(event),
+        EventPayload::Sysenter { .. } => print_sysenter_event(event),
         EventPayload::Eos => unreachable!(),
     }
 }

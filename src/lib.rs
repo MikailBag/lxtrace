@@ -56,7 +56,10 @@ pub enum EventPayload {
     Attach,
     /// First field - raw syscall args as is in registers
     /// Second field - parsed data
-    Sysenter(RawSyscall, Option<Syscall>),
+    Sysenter {
+        raw: RawSyscall,
+        decoded: Option<Syscall>,
+    },
     Exit(i32),
     /// Internal
     /// for this event pid=0
