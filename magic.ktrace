@@ -301,7 +301,10 @@ syscall vfork {
 
 #[id = 59]
 syscall execve {
-    ret: num
+    ret: num,
+    exe_path: zstring,
+    argv: num,
+    envp: num
 }
 
 #[id = 60]
