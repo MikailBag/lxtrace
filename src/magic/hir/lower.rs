@@ -6,9 +6,17 @@ fn lower_def_body(ast: parse_tree::DefBody) -> hir::DefBody {
     fn lower_field_def(ast: parse_tree::FieldDef) -> hir::FieldDef {
         let name = ast.name();
         let ty = ast.ty();
+        let attrs = ast.attrs();
+        let ty_info = hir::FieldTypeInfo {
+            ty_name: ty.to_string(),
+            len_ref: attrs
+                .get("len")
+                .map(|len| len.split("::").map(ToOwned::to_owned).collect())
+                .unwrap_or_else(Vec::new),
+        };
         hir::FieldDef {
             name: name.to_string(),
-            ty: ty.to_string(),
+            ty_info,
         }
     }
     let fields = ast.fields().map(lower_field_def).collect();
@@ -24,10 +32,32 @@ fn lower_syscall_def(syscall_def_ast: parse_tree::SyscallDef) -> anyhow::Result<
             anyhow::bail!("`id` attribute not set");
         }
     };
+    let strategy = match attrs.get("kind") {
+        Some(s) => match *s {
+            "in" => hir::SyscallAnalyzeStrategy {
+                on_enter: true,
+                on_exit: false,
+            },
+            "out" => hir::SyscallAnalyzeStrategy {
+                on_enter: false,
+                on_exit: true,
+            },
+            "inout" => hir::SyscallAnalyzeStrategy {
+                on_enter: true,
+                on_exit: true,
+            },
+            _ => anyhow::bail!("unknown `kind` attr value: {}", s),
+        },
+        None => hir::SyscallAnalyzeStrategy {
+            on_enter: false,
+            on_exit: true,
+        },
+    };
     Ok(hir::SyscallDef {
         id: hir::SyscallId(syscall_id),
         name: name.to_string(),
         body: lower_def_body(syscall_def_ast.def_body()),
+        strategy,
     })
 }
 

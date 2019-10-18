@@ -2,7 +2,9 @@ pub mod magic;
 mod syscall_decode;
 mod tracer;
 
-use crate::syscall_decode::Decoder;
+use anyhow::{anyhow, Context};
+pub use magic::ty::Value;
+use magic::Magic;
 use nix::sys::ptrace;
 use serde::{Deserialize, Serialize};
 use std::{mem, os::unix::io::RawFd};
@@ -18,34 +20,19 @@ pub enum Payload {
     Cmd(SpawnOptions),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "data")]
-#[serde(rename_all = "kebab-case")]
-pub enum DecodedArg {
-    Num(i128),
-    Handle(u32 /*raw fd value*/, Option<u64> /* ray id*/),
-    String(String),
-    Flags(u64, Vec<String>),
-    Unknown,
-}
-
-impl Default for DecodedArg {
-    fn default() -> DecodedArg {
-        DecodedArg::Unknown
-    }
-}
-
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RawSyscall {
     pub syscall_id: u64,
     pub args: [u64; 6],
+    pub ret: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Syscall {
     pub name: String,
-    pub args_decoded: Vec<DecodedArg>,
+    pub args: Vec<Value>,
+    pub ret: Value,
 }
 
 #[repr(C)]
@@ -54,17 +41,27 @@ pub struct Syscall {
 #[serde(rename_all = "kebab-case")]
 pub enum EventPayload {
     Attach,
-    /// First field - raw syscall args as is in registers
-    /// Second field - parsed data
     Sysenter {
+        /// First field - raw syscall args as is in registers
+        raw: RawSyscall,
+        /// Second field - parsed data
+        decoded: Option<Syscall>,
+    },
+    Sysexit {
         raw: RawSyscall,
         decoded: Option<Syscall>,
+    },
+    Signal {
+        raw: i32,
+        decoded: String,
     },
     Exit(i32),
     /// Internal
     /// for this event pid=0
     /// tracer is about to exit because all tracees have finished
     Eos,
+    #[doc(hidden)]
+    __NonExhaustive,
 }
 
 #[repr(C)]
@@ -96,27 +93,13 @@ unsafe fn child(action: Payload) -> ! {
     libc::exit(0)
 }
 
-type Res = Result<(), ()>;
-
-trait ResultExt {
-    type Ok;
-    fn conv(self) -> Result<Self::Ok, ()>;
-}
-
-impl<T, E> ResultExt for Result<T, E> {
-    type Ok = T;
-    fn conv(self) -> Result<T, ()> {
-        self.map_err(|_err| ())
-    }
-}
-
-unsafe fn split(payload: Payload, out: Socket, decoder: Decoder) -> ! {
+unsafe fn split(payload: Payload, out: Socket, magic: &Magic) -> ! {
     let res = libc::fork();
     if res == -1 {
         libc::exit(1);
     }
     if res != 0 {
-        tracer::parent(out, decoder).ok();
+        tracer::parent(out, magic).ok();
     } else {
         mem::forget(out);
         child(payload);
@@ -124,33 +107,40 @@ unsafe fn split(payload: Payload, out: Socket, decoder: Decoder) -> ! {
     libc::exit(0);
 }
 
-pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> Res {
-    let (mut rcv, snd) = tiny_nix_ipc::Socket::new_socketpair().conv()?;
+pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> anyhow::Result<()> {
+    let (mut rcv, snd) = tiny_nix_ipc::Socket::new_socketpair()
+        .map_err(|err| anyhow!("{}", err))
+        .context("failed to create socket pair")?;
 
     let magic = magic_init();
-    let syscall_decoder = syscall_decode::Decoder::new(&magic);
 
     let res = libc::fork();
     if res == -1 {
-        return Err(());
+        return Err(anyhow::Error::new(std::io::Error::last_os_error()).context("fork failed"));
     }
 
     if res != 0 {
         mem::forget(snd);
         loop {
-            let msg = rcv.recv_json::<Event, [RawFd; 0]>(4096).conv()?.0;
+            let msg = rcv
+                .recv_json::<Event, [RawFd; 0]>(16384)
+                .map_err(|err| anyhow!("{}", err))
+                .context("failed to receive event")?
+                .0;
             match msg.payload {
                 EventPayload::Eos => {
                     break Ok(());
                 }
                 _ => {
-                    out.send(msg).conv()?;
+                    out.send(msg)
+                        .map_err(|err| anyhow!("{}", err))
+                        .context("failed to send event")?;
                 }
             }
         }
     } else {
         mem::forget(rcv);
-        split(payload, snd, syscall_decoder)
+        split(payload, snd, &magic)
     }
 }
 

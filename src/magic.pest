@@ -6,7 +6,7 @@ syscall_def = {attrs ~ "syscall" ~ ident ~ def_body}
 
 def_body = {"{" ~ (field_def ~ ("," ~ field_def)*)? ~ "}"}
 
-field_def = {ident ~ ":" ~ ident}
+field_def = {attrs ~ ident ~ ":" ~ ident}
 
 attrs = {attrs_inner}
 attrs_inner = _{attr ~ (attrs_inner)? | ""}

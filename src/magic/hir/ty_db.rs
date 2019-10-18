@@ -24,5 +24,8 @@ impl TyDb {
         self.add("fd", Ty::Primitive(PrimitiveTy::Fd));
         self.add("zstring", Ty::Primitive(PrimitiveTy::ZString));
         self.add("num", Ty::Primitive(PrimitiveTy::Number));
+        self.add("buf", Ty::Primitive(PrimitiveTy::Buffer));
+        self.add("signal", Ty::Primitive(PrimitiveTy::Signal));
+        self.add("address", Ty::Primitive(PrimitiveTy::Address));
     }
 }

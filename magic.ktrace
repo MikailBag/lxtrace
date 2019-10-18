@@ -1,10 +1,20 @@
 #[id = 0]
+#[kind = out]
 syscall read {
+    fd: fd,
+    #[len = size]
+    buf: buf,
+    size: num,
     ret: num
 }
 
 #[id = 1]
+#[kind = in]
 syscall write {
+    fd: fd,
+    #[len = size]
+    buf: buf,
+    size: num,
     ret: num
 }
 
@@ -34,6 +44,8 @@ syscall fstat {
 
 #[id = 6]
 syscall lstat {
+    path: zstring,
+    stat: num,
     ret: num
 }
 
@@ -49,7 +61,7 @@ syscall lseek {
 
 #[id = 9]
 syscall mmap {
-    ret: num
+    ret: address
 }
 
 #[id = 10]
@@ -69,6 +81,9 @@ syscall brk {
 
 #[id = 13]
 syscall rt_sigaction {
+    signum: signal,
+    new_act: num,
+    old_act: num,
     ret: num
 }
 
@@ -285,21 +300,25 @@ syscall getsockopt {
 }
 
 #[id = 56]
+#[kind = inout]
 syscall clone {
     ret: num
 }
 
 #[id = 57]
+#[kind = inout]
 syscall fork {
     ret: num
 }
 
 #[id = 58]
+#[kind = inout]
 syscall vfork {
     ret: num
 }
 
 #[id = 59]
+#[kind = inout]
 syscall execve {
     exe_path: zstring,
     argv: num,
@@ -308,7 +327,9 @@ syscall execve {
 }
 
 #[id = 60]
+#[kind = in]
 syscall exit {
+    status: num,
     ret: num
 }
 

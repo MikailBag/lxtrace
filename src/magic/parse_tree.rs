@@ -92,13 +92,17 @@ impl<'a> DefBody<'a> {
 define_node!(FieldDef, Rule::field_def);
 
 impl<'a> FieldDef<'a> {
+    pub(super) fn attrs(&self) -> Attrs {
+        create_attrs(self.child_at(0))
+    }
+
     pub(super) fn name(&self) -> &'a str {
-        let node = self.child_at(0);
+        let node = self.child_at(1);
         checked_node_text(node, Rule::ident)
     }
 
     pub(super) fn ty(&self) -> &'a str {
-        let node = self.child_at(1);
+        let node = self.child_at(2);
         checked_node_text(node, Rule::ident)
     }
 }

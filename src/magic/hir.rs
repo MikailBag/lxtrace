@@ -37,10 +37,16 @@ pub enum ItemDef {
 pub struct SyscallId(pub u32);
 
 #[derive(Debug)]
+pub struct SyscallAnalyzeStrategy {
+    pub on_enter: bool,
+    pub on_exit: bool,
+}
+#[derive(Debug)]
 pub struct SyscallDef {
     pub id: SyscallId,
     pub name: String,
     pub body: DefBody,
+    pub strategy: SyscallAnalyzeStrategy,
 }
 
 impl SyscallDef {
@@ -58,8 +64,12 @@ impl SyscallDef {
         self.body
             .fields
             .iter()
-            .take(self.params_count())
+            .filter(|field| field.name != "ret")
             .enumerate()
+    }
+
+    pub fn ret(&self) -> &FieldDef {
+        self.body.fields.last().expect("empty DefBody")
     }
 }
 
@@ -75,7 +85,23 @@ impl DefBody {
 }
 
 #[derive(Debug)]
+pub struct FieldTypeInfo {
+    pub ty_name: String,
+    pub len_ref: Vec<String>,
+}
+
+impl FieldTypeInfo {
+    pub fn deps(&self) -> Vec<String> {
+        let mut res = vec![];
+        if !self.len_ref.is_empty() {
+            res.push(self.len_ref[0].clone());
+        }
+        res
+    }
+}
+
+#[derive(Debug)]
 pub struct FieldDef {
     pub name: String,
-    pub ty: String,
+    pub ty_info: FieldTypeInfo,
 }
