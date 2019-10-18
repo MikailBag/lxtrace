@@ -57,9 +57,10 @@ fn process_syscall(
 pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()> {
     let pid_children = Pid::from_raw(-1);
     let waitflag = Some(nix::sys::wait::WaitPidFlag::__WALL);
-    let mut num_children = 1; //at start, we have one tracee, started by run()
     let mut children: HashMap<u32, ChildInfo> = HashMap::new();
-    while num_children != 0 {
+    let mut first_iteration = true;
+    while !children.is_empty() || first_iteration {
+        first_iteration = false;
         let wstatus =
             nix::sys::wait::waitpid(pid_children, waitflag).context("waitpid() failed")?;
         let pid = wstatus.pid().unwrap().as_raw() as u32; // we don't use WNOHANG
@@ -94,7 +95,6 @@ pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()
                     pid,
                 };
                 children.remove(&pid);
-                num_children -= 1;
                 should_resume = false;
                 Some(ev)
             }
@@ -153,7 +153,7 @@ pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()
                 let ev = Event { payload, pid };
                 Some(ev)
             }
-            _ => None,
+            _ => None
         };
         if let Some(ev) = event {
             out.send_json(&ev, None)
