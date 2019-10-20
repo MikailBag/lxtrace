@@ -188,7 +188,7 @@ fn main() -> anyhow::Result<()> {
         };
         if opt.json {
             let s = serde_json::to_string(&event).expect("failed to serialize");
-            println!("{}", s);
+            writeln!(&mut *out, "{}", s)?;
         } else {
             print_event(event, &mut *out).ok();
         }
