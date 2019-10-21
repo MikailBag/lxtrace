@@ -87,9 +87,10 @@ fn print_syscall_event(ev: Event, kind: SyscallEvent, wr: &mut dyn Write) -> std
                 SyscallEvent::Enter => writeln!(wr)?,
                 SyscallEvent::Exit => {
                     write!(wr, " = ")?;
+
                     match &data {
-                        Some(dec) if dec.ret.is_known() => {
-                            print_data(&dec.ret, wr)?;
+                        Some(dec) if dec.ret.as_ref().unwrap().is_known() => {
+                            print_data(dec.ret.as_ref().unwrap(), wr)?;
                             writeln!(wr,)?
                         }
                         _ => writeln!(wr, "{}", raw_data.ret)?,

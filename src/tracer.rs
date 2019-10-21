@@ -115,6 +115,12 @@ pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()
                 };
 
                 if started_syscall {
+                    let decoded_params = {
+                        let mut p = decoded_params;
+                        // Not provide return value, because it doesn't exist yes
+                        p.as_mut().map(|p| p.ret = None);
+                        p
+                    };
                     let ev_payload = EventPayload::Sysenter {
                         raw: params,
                         decoded: decoded_params,
@@ -153,7 +159,7 @@ pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()
                 let ev = Event { payload, pid };
                 Some(ev)
             }
-            _ => None
+            _ => None,
         };
         if let Some(ev) = event {
             out.send_json(&ev, None)

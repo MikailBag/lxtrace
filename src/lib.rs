@@ -32,7 +32,9 @@ pub struct RawSyscall {
 pub struct Syscall {
     pub name: String,
     pub args: Vec<Value>,
-    pub ret: Value,
+    // sysenter: Some
+    // sysexit: None
+    pub ret: Option<Value>,
 }
 
 #[repr(C)]
