@@ -42,7 +42,11 @@ enum SyscallEvent {
     Exit,
 }
 
-fn print_syscall_event(ev: Event, kind: SyscallEvent, wr: &mut dyn Write) -> std::io::Result<()> {
+fn print_syscall_event(
+    ev: Event,
+    kind: SyscallEvent,
+    wr: &mut dyn Write,
+) -> std::io::Result<()> {
     match ev.payload {
         EventPayload::Sysenter {
             raw: raw_data,
@@ -97,6 +101,26 @@ fn print_syscall_event(ev: Event, kind: SyscallEvent, wr: &mut dyn Write) -> std
                     }
                 }
             }
+            if let Some(data) = &data {
+                if let Some(backtrace) = &data.backtrace {
+                    for thread in backtrace.threads() {
+                        if let Some(name) = thread.name() {
+                            writeln!(wr, "thread {} at:", name)?;
+                        } else {
+                            writeln!(wr, "thread #{} at:", thread.id())?;
+                        }
+                        for (i,frame) in thread.frames().iter().enumerate() {
+                            write!(wr, "\t {}: ", i)?;
+                            if let Some(sym) = frame.sym() {
+                               writeln!(wr, "{}", sym.name())?;
+                            } else {
+                                writeln!(wr, "0x{:016x}", frame.ip())?;
+                            }
+                        }
+                    }
+                    writeln!(wr)?;
+                }
+            }
         }
         _ => unreachable!(),
     }
@@ -138,6 +162,9 @@ struct Opt {
     json: bool,
     #[structopt(long, short = "f")]
     file: Option<PathBuf>,
+    /// Capture stack trace for each syscall
+    #[structopt(long, short = "b")]
+    backtrace: bool,
 }
 
 fn split_env_item(s: &str) -> (String, String) {
@@ -165,10 +192,13 @@ fn main() -> anyhow::Result<()> {
         env: opt.env.into_iter().map(|p| split_env_item(&p)).collect(),
     };
     let payload = ktrace::Payload::Cmd(cmd_args);
+    let settings = ktrace::Settings {
+        capture_backtrace: opt.backtrace,
+    };
     unsafe {
         // we spawn new thread, because ktrace will block it until child finishes
         std::thread::spawn(move || {
-            if let Err(e) = ktrace::run(payload, sender) {
+            if let Err(e) = ktrace::run(payload, settings, sender) {
                 eprintln!("{:?}", e);
             }
         });

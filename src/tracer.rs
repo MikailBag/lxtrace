@@ -4,7 +4,7 @@ use crate::{
         Magic,
     },
     syscall_decode::Decoder,
-    Event, EventPayload, RawSyscall, Syscall,
+    Event, EventPayload, RawSyscall, Settings, Syscall,
 };
 use anyhow::Context;
 use nix::{
@@ -54,7 +54,50 @@ fn process_syscall(
     syscall_decoder.process()
 }
 
-pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()> {
+fn captute_backtrace(proc: Pid) -> anyhow::Result<crate::backtrace::Backtrace> {
+    let mut options = rstack::TraceOptions::new();
+    options.ptrace_attach(false);
+    options.symbols(true);
+    let process_info = options
+        .trace(proc.as_raw() as _)
+        .context("failed to capture backtrace")?;
+    let mut bt = crate::backtrace::Backtrace { threads: vec![] };
+    for thread in process_info.threads() {
+        let mut thread_info = crate::backtrace::ThreadBacktrace {
+            frames: vec![],
+            name: None,
+            id: thread.id(),
+        };
+        thread_info.name = thread.name().map(|p| p.to_string());
+        let mut frames = Vec::new();
+        for frame in thread.frames() {
+            let mut frame_info = crate::backtrace::Frame {
+                ip: frame.ip() as usize,
+                sym: None,
+            };
+            if let Some(sym) = frame.symbol() {
+                frame_info.sym = Some(crate::backtrace::Symbol {
+                    addr: sym.address() as usize,
+                    name: sym.name().to_string(),
+                    offset: sym.offset() as usize,
+                    size: sym.size() as usize,
+                });
+            }
+
+            frames.push(frame_info);
+        }
+        thread_info.frames = frames;
+        bt.threads.push(thread_info);
+    }
+
+    Ok(bt)
+}
+
+pub(crate) unsafe fn parent(
+    mut out: Socket,
+    settings: Settings,
+    magic: &Magic,
+) -> anyhow::Result<()> {
     let pid_children = Pid::from_raw(-1);
     let waitflag = Some(nix::sys::wait::WaitPidFlag::__WALL);
     let mut children: HashMap<u32, ChildInfo> = HashMap::new();
@@ -109,18 +152,27 @@ pub(crate) unsafe fn parent(mut out: Socket, magic: &Magic) -> anyhow::Result<()
                     .context("ptrace getregs failed")?;
                 let params = decode_syscall_args(regs);
                 let def = magic.lookup_syscall_by_id(SyscallId(params.syscall_id as u32));
-                let decoded_params = match def {
-                    Some(def) => process_syscall(&params, Pid::from_raw(pid as i32), magic, def),
+                let child_pid = Pid::from_raw(pid as i32);
+                let mut decoded_params = match def {
+                    Some(def) => process_syscall(&params, child_pid, magic, def),
                     None => None,
                 };
-
+                decoded_params.as_mut().map(|p| {
+                    // attach backtrace if requested
+                    if settings.capture_backtrace {
+                        match captute_backtrace(child_pid) {
+                            Ok(bt) => p.backtrace = Some(bt),
+                            Err(err) => {
+                                eprintln!("failed to capture backtrace: {:?}", err);
+                            }
+                        }
+                    }
+                });
                 if started_syscall {
-                    let decoded_params = {
-                        let mut p = decoded_params;
+                    decoded_params.as_mut().map(|p| {
                         // Not provide return value, because it doesn't exist yes
-                        p.as_mut().map(|p| p.ret = None);
-                        p
-                    };
+                        p.ret = None;
+                    });
                     let ev_payload = EventPayload::Sysenter {
                         raw: params,
                         decoded: decoded_params,
