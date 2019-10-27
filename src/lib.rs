@@ -2,28 +2,22 @@ pub mod magic;
 mod syscall_decode;
 mod tracer;
 pub mod backtrace;
+mod child;
 
 use anyhow::{anyhow, Context};
 pub use magic::ty::Value;
 use magic::Magic;
-use nix::sys::ptrace;
 use serde::{Deserialize, Serialize};
 use std::{mem, os::unix::io::RawFd};
 use tiny_nix_ipc::Socket;
+pub use child::{Payload, SpawnOptions};
 
-pub struct SpawnOptions {
-    pub argv: Vec<String>,
-    pub env: Vec<(String, String)>,
-}
+
 
 pub struct Settings {
     pub capture_backtrace: bool,
 }
 
-pub enum Payload {
-    Fn(Box<dyn FnOnce() + Send>),
-    Cmd(SpawnOptions),
-}
 
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -82,27 +76,6 @@ pub struct Event {
     pub pid: u32,
 }
 
-unsafe fn child(action: Payload) -> ! {
-    ptrace::traceme().expect("ptrace(TRACEME) failed");
-    if libc::raise(libc::SIGSTOP) == -1 {
-        panic!("raise(SIGSTOP)")
-    }
-    match action {
-        Payload::Fn(bfn) => {
-            bfn();
-        }
-        Payload::Cmd(spawn_opts) => {
-            std::process::Command::new(&spawn_opts.argv[0])
-                .args(&spawn_opts.argv[1..])
-                .envs(spawn_opts.env.iter().map(|&(ref k, ref v)| (k, v)))
-                .spawn()
-                .unwrap()
-                .wait()
-                .unwrap();
-        }
-    }
-    libc::exit(0)
-}
 
 unsafe fn split(payload: Payload, settings: Settings, out: Socket, magic: &Magic) -> ! {
     let res = libc::fork();
@@ -113,7 +86,7 @@ unsafe fn split(payload: Payload, settings: Settings, out: Socket, magic: &Magic
         tracer::parent(out, settings, magic).ok();
     } else {
         mem::forget(out);
-        child(payload);
+        child::execute_child_payload(payload);
     }
     libc::exit(0);
 }
