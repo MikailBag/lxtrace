@@ -1,5 +1,6 @@
 use anyhow::Context;
 use ktrace::{self, Event, EventPayload, Value};
+use std::ffi::CString;
 use std::{io::Write, path::PathBuf, process::exit};
 use structopt::StructOpt;
 
@@ -16,8 +17,11 @@ fn print_data(arg: &Value, wr: &mut dyn Write) -> std::io::Result<()> {
             write!(wr, "\"{}\"", s)?;
         }
         Value::Buffer(buf) => {
-            let s = String::from_utf8_lossy(&*buf);
-            write!(wr, "\"{}\"", s)?;
+            if let Ok(s) = std::str::from_utf8(&buf) {
+                write!(wr, "\"{}\"", s)?;
+            } else {
+                write!(wr, "<binary data>")?;
+            }
         }
         Value::Flags(_, _) => {
             write!(wr, "TODO: flags")?;
@@ -42,11 +46,7 @@ enum SyscallEvent {
     Exit,
 }
 
-fn print_syscall_event(
-    ev: Event,
-    kind: SyscallEvent,
-    wr: &mut dyn Write,
-) -> std::io::Result<()> {
+fn print_syscall_event(ev: Event, kind: SyscallEvent, wr: &mut dyn Write) -> std::io::Result<()> {
     match ev.payload {
         EventPayload::Sysenter {
             raw: raw_data,
@@ -68,9 +68,11 @@ fn print_syscall_event(
                             SyscallEvent::Exit => "finished",
                         }
                     )?;
-                    for arg in &data.args {
+                    for (i, arg) in data.args.iter().enumerate() {
+                        if i != 0 {
+                            write!(wr, ", ")?; // TODO properly put commas and spacing
+                        }
                         print_data(arg, wr)?;
-                        write!(wr, ",")?; // TODO properly put commas and spacing
                     }
                     write!(wr, ")")?;
                 }
@@ -109,10 +111,10 @@ fn print_syscall_event(
                         } else {
                             writeln!(wr, "thread #{} at:", thread.id())?;
                         }
-                        for (i,frame) in thread.frames().iter().enumerate() {
+                        for (i, frame) in thread.frames().iter().enumerate() {
                             write!(wr, "\t {}: ", i)?;
                             if let Some(sym) = frame.sym() {
-                               writeln!(wr, "`{}`", sym.demangle())?;
+                                writeln!(wr, "`{}`", sym.demangle())?;
                             } else {
                                 writeln!(wr, "0x{:016x}", frame.ip())?;
                             }
@@ -152,12 +154,36 @@ fn print_event(event: Event, wr: &mut dyn Write) -> std::io::Result<()> {
     Ok(())
 }
 
-#[derive(StructOpt)]
+#[derive(Clone)]
+struct XCString(CString);
+
+impl std::str::FromStr for XCString {
+    type Err = std::ffi::NulError;
+
+    fn from_str(s: &str) -> Result<XCString, Self::Err> {
+        CString::new(s).map(XCString)
+    }
+}
+
+impl XCString {
+    fn into_inner(self) -> CString {
+        self.0
+    }
+}
+
+impl std::ops::Deref for XCString {
+    type Target = CString;
+    fn deref(&self) -> &CString {
+        &self.0
+    }
+}
+
+#[derive(StructOpt, Clone)]
 struct Opt {
     #[structopt(last = true)]
-    args: Vec<String>,
+    args: Vec<XCString>,
     #[structopt(long, short = "e")]
-    env: Vec<String>,
+    env: Vec<XCString>,
     #[structopt(long, short = "j")]
     json: bool,
     #[structopt(long, short = "f")]
@@ -167,19 +193,6 @@ struct Opt {
     backtrace: bool,
 }
 
-fn split_env_item(s: &str) -> (String, String) {
-    if !s.contains('=') {
-        eprintln!("env var must be passed as NAME=VALUE");
-        exit(1);
-    }
-    let mut it = s.splitn(2, '=');
-
-    (
-        it.next().unwrap().to_string(),
-        it.next().unwrap().to_string(),
-    )
-}
-
 fn main() -> anyhow::Result<()> {
     let opt: Opt = Opt::from_args();
     if opt.args.is_empty() {
@@ -187,21 +200,35 @@ fn main() -> anyhow::Result<()> {
         exit(1);
     }
     let (sender, receiver) = crossbeam::channel::unbounded();
-    let cmd_args = ktrace::SpawnOptions {
-        argv: opt.args,
-        env: opt.env.into_iter().map(|p| split_env_item(&p)).collect(),
-    };
-    let payload = ktrace::Payload::Cmd(cmd_args);
-    let settings = ktrace::Settings {
-        capture_backtrace: opt.backtrace,
-    };
-    unsafe {
-        // we spawn new thread, because ktrace will block it until child finishes
-        std::thread::spawn(move || {
-            if let Err(e) = ktrace::run(payload, settings, sender) {
-                eprintln!("{:?}", e);
-            }
-        });
+    {
+        let opt = opt.clone();
+        unsafe {
+            // we spawn new thread, because ktrace will block it until child finishes
+            std::thread::spawn(move || {
+                let arg0 = opt.args[0].clone();
+                let cmd_args = ktrace::SpawnOptions {
+                    exe: &arg0,
+                    argv: &opt
+                        .args
+                        .into_iter()
+                        .map(XCString::into_inner)
+                        .collect::<Vec<_>>(),
+                    env: &opt
+                        .env
+                        .into_iter()
+                        .map(XCString::into_inner)
+                        .collect::<Vec<_>>(),
+                };
+                let payload = ktrace::Payload::Cmd(cmd_args);
+                let settings = ktrace::Settings {
+                    capture_backtrace: opt.backtrace,
+                };
+
+                if let Err(e) = ktrace::run(payload, settings, sender) {
+                    eprintln!("{:?}", e);
+                }
+            });
+        }
     }
     let mut out: Box<dyn std::io::Write> = match &opt.file {
         Some(path) => {
