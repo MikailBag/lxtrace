@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Backtrace {
         pub(crate) threads: Vec<ThreadBacktrace>,
@@ -50,8 +51,20 @@ use serde::{Deserialize, Serialize};
     }
 
     impl Symbol {
-        pub fn name(&self) -> &str {
+        pub fn raw_name(&self) -> &str {
             self.name.as_ref()
+        }
+
+        pub fn demangle(&self) -> Cow<str> {
+            if let Ok(rust_sym) = rustc_demangle::try_demangle(self.raw_name()) {
+                return Cow::Owned(rust_sym.as_str().to_string())
+            }
+
+            if let Ok(cpp_sym) = cpp_demangle::Symbol::new(self.raw_name()) {
+                return Cow::Owned(cpp_sym.to_string())
+            }
+
+            Cow::Borrowed(self.raw_name())
         }
 
         pub fn offset(&self) -> usize {

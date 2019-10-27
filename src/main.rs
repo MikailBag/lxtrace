@@ -112,7 +112,7 @@ fn print_syscall_event(
                         for (i,frame) in thread.frames().iter().enumerate() {
                             write!(wr, "\t {}: ", i)?;
                             if let Some(sym) = frame.sym() {
-                               writeln!(wr, "{}", sym.name())?;
+                               writeln!(wr, "`{}`", sym.demangle())?;
                             } else {
                                 writeln!(wr, "0x{:016x}", frame.ip())?;
                             }
