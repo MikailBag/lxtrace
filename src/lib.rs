@@ -1,6 +1,7 @@
 pub mod magic;
 mod syscall_decode;
 mod tracer;
+pub mod backtrace;
 
 use anyhow::{anyhow, Context};
 pub use magic::ty::Value;
@@ -13,6 +14,10 @@ use tiny_nix_ipc::Socket;
 pub struct SpawnOptions {
     pub argv: Vec<String>,
     pub env: Vec<(String, String)>,
+}
+
+pub struct Settings {
+    pub capture_backtrace: bool,
 }
 
 pub enum Payload {
@@ -28,6 +33,8 @@ pub struct RawSyscall {
     pub ret: u64,
 }
 
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Syscall {
     pub name: String,
@@ -35,6 +42,8 @@ pub struct Syscall {
     // sysenter: Some
     // sysexit: None
     pub ret: Option<Value>,
+    // only provided on sysenter events, if backtrace capture was requested
+    pub backtrace: Option<backtrace::Backtrace>,
 }
 
 #[repr(C)]
@@ -95,13 +104,13 @@ unsafe fn child(action: Payload) -> ! {
     libc::exit(0)
 }
 
-unsafe fn split(payload: Payload, out: Socket, magic: &Magic) -> ! {
+unsafe fn split(payload: Payload, settings: Settings, out: Socket, magic: &Magic) -> ! {
     let res = libc::fork();
     if res == -1 {
         libc::exit(1);
     }
     if res != 0 {
-        tracer::parent(out, magic).ok();
+        tracer::parent(out, settings, magic).ok();
     } else {
         mem::forget(out);
         child(payload);
@@ -109,7 +118,11 @@ unsafe fn split(payload: Payload, out: Socket, magic: &Magic) -> ! {
     libc::exit(0);
 }
 
-pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> anyhow::Result<()> {
+pub unsafe fn run(
+    payload: Payload,
+    settings: Settings,
+    out: crossbeam::channel::Sender<Event>,
+) -> anyhow::Result<()> {
     let (mut rcv, snd) = tiny_nix_ipc::Socket::new_socketpair()
         .map_err(|err| anyhow!("{}", err))
         .context("failed to create socket pair")?;
@@ -142,7 +155,7 @@ pub unsafe fn run(payload: Payload, out: crossbeam::channel::Sender<Event>) -> a
         }
     } else {
         mem::forget(rcv);
-        split(payload, snd, &magic)
+        split(payload, settings, snd, &magic)
     }
 }
 

@@ -215,6 +215,7 @@ impl<'a> Decoder<'a> {
             name: syscall_spec.name.clone(),
             args,
             ret: Some(ret),
+            backtrace: None
         })
     }
 }
