@@ -108,7 +108,9 @@ pub(crate) unsafe fn parent(
             nix::sys::wait::waitpid(pid_children, waitflag).context("waitpid() failed")?;
         let pid = wstatus.pid().unwrap().as_raw() as u32; // we don't use WNOHANG
         let child_known = children.contains_key(&pid);
-        let mut should_resume = true;
+        // None, if child should not be resumed
+        // Some(sig_id), if child should be  resumed, and sig_id (if non-null) will be injected
+        let mut should_resume = Some(0);
         let event = match (child_known, wstatus) {
             (false, _) => {
                 ptrace::setoptions(
@@ -117,7 +119,8 @@ pub(crate) unsafe fn parent(
                         | ptrace::Options::PTRACE_O_EXITKILL
                         | ptrace::Options::PTRACE_O_TRACEFORK
                         | ptrace::Options::PTRACE_O_TRACECLONE
-                        | ptrace::Options::PTRACE_O_TRACEVFORK,
+                        | ptrace::Options::PTRACE_O_TRACEVFORK
+                        | ptrace::Options::PTRACE_O_TRACEEXEC,
                 )
                 .context("ptrace setoptions failed")?;
 
@@ -138,7 +141,7 @@ pub(crate) unsafe fn parent(
                     pid,
                 };
                 children.remove(&pid);
-                should_resume = false;
+                should_resume = None;
                 Some(ev)
             }
             (true, WaitStatus::PtraceSyscall(_)) => {
@@ -209,18 +212,35 @@ pub(crate) unsafe fn parent(
                 };
 
                 let ev = Event { payload, pid };
+                should_resume = Some(sig as i32);
                 Some(ev)
             }
-            _ => None,
+            (true, WaitStatus::PtraceEvent(_, _sigtrap, event_id)) => {
+                if event_id != libc::PTRACE_EVENT_EXEC {
+                    eprintln!("unexpected PtraceEvent: {}", event_id);
+                }
+                None
+            }
+            (true, other) => {
+                eprintln!("unknown WaitStatus: {:?}", other);
+                None
+            }
         };
         if let Some(ev) = event {
             out.send_json(&ev, None)
                 .map_err(|err| anyhow::anyhow!("{}", err))
                 .context("failed to send event")?;
         }
-        if should_resume {
+        if let Some(sig) = should_resume {
+            let sig = sig as *mut libc::c_void;
             // resume again, if child hasn't finished yet
-            ptrace::syscall(Pid::from_raw(pid as i32)).context("failed to resume")?;
+            // we'd like to use `nix::sys::ptrace::syscall`, but it doesn't support signal injection (https://github.com/nix-rust/nix/pull/1083)
+            libc::ptrace(
+                libc::PTRACE_SYSCALL,
+                pid,
+                std::ptr::null_mut() as *mut libc::c_void,
+                sig as *mut libc::c_void,
+            );
         }
     }
     let event = Event {
