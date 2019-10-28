@@ -17,6 +17,6 @@ pest = "2.1.2"
 pest_derive = "2.1.0"
 structopt = "0.3.3"
 anyhow = "1.0.14"
-rstack = {git = "https://github.com/sfackler/rstack", default-features = false, features = ["dw"]}
+rstack = {git = "https://github.com/sfackler/rstack", default-features = false, features = ["unwind"]}
 rustc-demangle = "0.1.16"
 cpp_demangle = "0.2.13"
