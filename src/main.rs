@@ -1,7 +1,6 @@
 use anyhow::Context;
 use ktrace::{self, Event, EventPayload, Value};
-use std::ffi::CString;
-use std::{io::Write, path::PathBuf, process::exit};
+use std::{ffi::CString, io::Write, ops::Deref, path::PathBuf, process::exit};
 use structopt::StructOpt;
 
 fn print_data(arg: &Value, wr: &mut dyn Write) -> std::io::Result<()> {
@@ -165,12 +164,6 @@ impl std::str::FromStr for XCString {
     }
 }
 
-impl XCString {
-    fn into_inner(self) -> CString {
-        self.0
-    }
-}
-
 impl std::ops::Deref for XCString {
     type Target = CString;
     fn deref(&self) -> &CString {
@@ -210,13 +203,15 @@ fn main() -> anyhow::Result<()> {
                     exe: &arg0,
                     argv: &opt
                         .args
-                        .into_iter()
-                        .map(XCString::into_inner)
+                        .iter()
+                        .map(XCString::deref)
+                        .map(|cstring| cstring.as_c_str())
                         .collect::<Vec<_>>(),
                     env: &opt
                         .env
-                        .into_iter()
-                        .map(XCString::into_inner)
+                        .iter()
+                        .map(XCString::deref)
+                        .map(|cstring| cstring.as_c_str())
                         .collect::<Vec<_>>(),
                 };
                 let payload = ktrace::Payload::Cmd(cmd_args);

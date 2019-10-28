@@ -1,11 +1,11 @@
 use nix::sys::ptrace;
-use std::ffi::CString;
+use std::ffi::CStr;
 
 pub struct SpawnOptions<'a> {
-    pub exe: &'a CString,
+    pub exe: &'a CStr,
     // should contain exe as first argument
-    pub argv: &'a [CString],
-    pub env: &'a [CString],
+    pub argv: &'a [&'a CStr],
+    pub env: &'a [&'a CStr],
 }
 pub enum Payload<'a> {
     Fn(Box<dyn FnOnce() + Send>),
@@ -13,7 +13,7 @@ pub enum Payload<'a> {
 }
 
 fn payload_cmd(spawn_opts: SpawnOptions) -> ! {
-    if let Err(e) = nix::unistd::execve(spawn_opts.exe, spawn_opts.argv, spawn_opts.env) {
+    if let Err(e) = nix::unistd::execvpe(spawn_opts.exe, spawn_opts.argv, spawn_opts.env) {
         let err_msg = e.to_string();
         nix::unistd::write(1, err_msg.as_bytes()).ok();
         unsafe {

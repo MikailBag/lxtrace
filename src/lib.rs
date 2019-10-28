@@ -1,23 +1,20 @@
+pub mod backtrace;
+mod child;
 pub mod magic;
 mod syscall_decode;
 mod tracer;
-pub mod backtrace;
-mod child;
 
 use anyhow::{anyhow, Context};
+pub use child::{Payload, SpawnOptions};
 pub use magic::ty::Value;
 use magic::Magic;
 use serde::{Deserialize, Serialize};
 use std::{mem, os::unix::io::RawFd};
 use tiny_nix_ipc::Socket;
-pub use child::{Payload, SpawnOptions};
-
-
 
 pub struct Settings {
     pub capture_backtrace: bool,
 }
-
 
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,8 +23,6 @@ pub struct RawSyscall {
     pub args: [u64; 6],
     pub ret: u64,
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Syscall {
@@ -75,7 +70,6 @@ pub struct Event {
     pub payload: EventPayload,
     pub pid: u32,
 }
-
 
 unsafe fn split(payload: Payload, settings: Settings, out: Socket, magic: &Magic) -> ! {
     let res = libc::fork();

@@ -208,7 +208,7 @@ pub(crate) unsafe fn parent(
             (true, WaitStatus::Stopped(_, sig)) => {
                 let payload = EventPayload::Signal {
                     raw: sig as i32,
-                    decoded: crate::syscall_decode::get_signal_name(sig).to_string(),
+                    decoded: sig.as_str().to_string(),
                 };
 
                 let ev = Event { payload, pid };

@@ -11,6 +11,8 @@ use crate::{
     RawSyscall, Syscall,
 };
 
+use std::convert::TryFrom;
+
 use nix::{
     sys::uio::{process_vm_readv, IoVec, RemoteIoVec},
     unistd::Pid,
@@ -69,12 +71,6 @@ fn try_read_zstring(ptr: usize, proc: Pid) -> Option<Vec<u8>> {
         }
     }
     Some(out_buf)
-}
-
-pub(crate) fn get_signal_name(s: nix::sys::signal::Signal) -> &'static str {
-    // FIXME: https://github.com/nix-rust/nix/pull/1138
-    let b = s.to_string().into_boxed_str();
-    Box::leak(b)
 }
 
 fn decode_error(value: u64) -> Option<Value> {
@@ -146,9 +142,9 @@ impl<'a> Decoder<'a> {
             }
             Ty::Primitive(PrimitiveTy::Signal) => {
                 let signal_id = value as i32;
-                let signal_name = nix::sys::signal::Signal::from_c_int(signal_id)
+                let signal_name = nix::sys::signal::Signal::try_from(signal_id)
                     .ok()
-                    .map(get_signal_name);
+                    .map(nix::sys::signal::Signal::as_str);
                 Value::Signal(signal_id, signal_name.map(ToString::to_string))
             }
             Ty::Primitive(PrimitiveTy::Address) => Value::Address(value),
@@ -215,7 +211,7 @@ impl<'a> Decoder<'a> {
             name: syscall_spec.name.clone(),
             args,
             ret: Some(ret),
-            backtrace: None
+            backtrace: None,
         })
     }
 }
