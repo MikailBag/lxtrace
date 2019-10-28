@@ -1,0 +1,23 @@
+on:
+  push:
+    branches:
+      - master
+      - deploy
+name: deploy
+jobs:
+  deploy:
+    runs-on: 'ubuntu-18.04'
+    steps:
+      - uses: actions/checkout@v1
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: install deps
+        run: |
+          cargo install cargo-deb
+          sudo apt update -y
+          sudo apt install -y libunwind-dev
+      - name: build
+        run: |
+          cargo deb

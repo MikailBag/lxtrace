@@ -3,6 +3,8 @@ name = "ktrace"
 version = "0.1.0"
 authors = ["Mikail Bagishov <bagishov.mikail@yandex.ru>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "linux system call tracer, similar to strace"
 
 [dependencies]
 crossbeam = "0.7.2"
