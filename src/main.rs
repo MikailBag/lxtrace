@@ -184,13 +184,29 @@ struct Opt {
     /// Capture stack trace for each syscall
     #[structopt(long, short = "b")]
     backtrace: bool,
+    /// Child will inherit all environment vars visible to ktrace
+    #[structopt(long)]
+    inherit_env: bool,
 }
 
 fn main() -> anyhow::Result<()> {
-    let opt: Opt = Opt::from_args();
+    use std::os::unix::ffi::OsStringExt;
+    let mut opt: Opt = Opt::from_args();
     if opt.args.is_empty() {
         eprintln!("executable not provided");
         exit(1);
+    }
+    if opt.inherit_env {
+        // TODO: probably this doesn't interact well with --env
+        for (k, v) in std::env::vars_os() {
+            let mut s = std::ffi::OsString::new();
+            s.push(k);
+            s.push("=");
+            s.push(v);
+            let cs = std::ffi::CString::new(s.into_vec())
+                .expect("environment contains non-zero-terminated string");
+            opt.env.push(XCString(cs));
+        }
     }
     let (sender, receiver) = crossbeam::channel::unbounded();
     {
