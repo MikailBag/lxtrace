@@ -1,5 +1,5 @@
 [package]
-name = "ktrace"
+name = "lxtrace"
 version = "0.1.0"
 authors = ["Mikail Bagishov <bagishov.mikail@yandex.ru>"]
 edition = "2018"

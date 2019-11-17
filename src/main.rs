@@ -1,5 +1,5 @@
 use anyhow::Context;
-use ktrace::{self, Event, EventPayload, Value};
+use lxtrace::{self, Event, EventPayload, Value};
 use std::{ffi::CString, io::Write, ops::Deref, path::PathBuf, process::exit};
 use structopt::StructOpt;
 
@@ -184,7 +184,7 @@ struct Opt {
     /// Capture stack trace for each syscall
     #[structopt(long, short = "b")]
     backtrace: bool,
-    /// Child will inherit all environment vars visible to ktrace
+    /// Child will inherit all environment vars visible to lxtrace
     #[structopt(long)]
     inherit_env: bool,
 }
@@ -212,10 +212,10 @@ fn main() -> anyhow::Result<()> {
     {
         let opt = opt.clone();
         unsafe {
-            // we spawn new thread, because ktrace will block it until child finishes
+            // we spawn new thread, because lxtrace will block it until child finishes
             std::thread::spawn(move || {
                 let arg0 = opt.args[0].clone();
-                let cmd_args = ktrace::SpawnOptions {
+                let cmd_args = lxtrace::SpawnOptions {
                     exe: &arg0,
                     argv: &opt
                         .args
@@ -230,12 +230,12 @@ fn main() -> anyhow::Result<()> {
                         .map(|cstring| cstring.as_c_str())
                         .collect::<Vec<_>>(),
                 };
-                let payload = ktrace::Payload::Cmd(cmd_args);
-                let settings = ktrace::Settings {
+                let payload = lxtrace::Payload::Cmd(cmd_args);
+                let settings = lxtrace::Settings {
                     capture_backtrace: opt.backtrace,
                 };
 
-                if let Err(e) = ktrace::run(payload, settings, sender) {
+                if let Err(e) = lxtrace::run(payload, settings, sender) {
                     eprintln!("{:?}", e);
                 }
             });
