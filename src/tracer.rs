@@ -109,8 +109,9 @@ pub(crate) unsafe fn parent(
         let pid = wstatus.pid().unwrap().as_raw() as u32; // we don't use WNOHANG
         let child_known = children.contains_key(&pid);
         // None, if child should not be resumed
+        // Some(None), if child should be resumed without signalling
         // Some(sig_id), if child should be  resumed, and sig_id (if non-null) will be injected
-        let mut should_resume = Some(0);
+        let mut should_resume = Some(None);
         let event = match (child_known, wstatus) {
             (false, _) => {
                 ptrace::setoptions(
@@ -212,12 +213,10 @@ pub(crate) unsafe fn parent(
                 };
 
                 let ev = Event { payload, pid };
-                should_resume = Some(sig as i32);
+                should_resume = Some(Some(sig));
                 Some(ev)
             }
-            (true, WaitStatus::PtraceEvent(_, _sigtrap, event_id)) => {
-                None
-            }
+            (true, WaitStatus::PtraceEvent(_, _sigtrap, _event_id)) => None,
             (true, other) => {
                 eprintln!("unknown WaitStatus: {:?}", other);
                 None
@@ -229,15 +228,8 @@ pub(crate) unsafe fn parent(
                 .context("failed to send event")?;
         }
         if let Some(sig) = should_resume {
-            let sig = sig as *mut libc::c_void;
             // resume again, if child hasn't finished yet
-            // we'd like to use `nix::sys::ptrace::syscall`, but it doesn't support signal injection (https://github.com/nix-rust/nix/pull/1083)
-            libc::ptrace(
-                libc::PTRACE_SYSCALL,
-                pid,
-                std::ptr::null_mut() as *mut libc::c_void,
-                sig as *mut libc::c_void,
-            );
+            ptrace::syscall(wstatus.pid().unwrap(), sig).context("failed to resume child")?;
         }
     }
     let event = Event {
