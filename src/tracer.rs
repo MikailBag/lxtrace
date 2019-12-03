@@ -216,9 +216,6 @@ pub(crate) unsafe fn parent(
                 Some(ev)
             }
             (true, WaitStatus::PtraceEvent(_, _sigtrap, event_id)) => {
-                if event_id != libc::PTRACE_EVENT_EXEC {
-                    eprintln!("unexpected PtraceEvent: {}", event_id);
-                }
                 None
             }
             (true, other) => {
