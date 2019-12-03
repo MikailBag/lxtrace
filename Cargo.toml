@@ -5,6 +5,7 @@ authors = ["Mikail Bagishov <bagishov.mikail@yandex.ru>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "linux system call tracer, similar to strace"
+repository = "https://github.com/mikailbag/lxtrace"
 
 [dependencies]
 crossbeam = "0.7.2"
