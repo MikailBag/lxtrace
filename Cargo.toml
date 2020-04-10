@@ -21,3 +21,4 @@ anyhow = "1.0.14"
 rstack = {version = "0.3.1", default-features = false, features = ["unwind"]}
 rustc-demangle = "0.1.16"
 cpp_demangle = "0.2.13"
+rand = ""
