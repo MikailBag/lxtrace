@@ -187,6 +187,9 @@ struct Opt {
     /// Child will inherit all environment vars visible to lxtrace
     #[structopt(long)]
     inherit_env: bool,
+    /// Accesses to this path will fail with some probability
+    #[structopt(long)]
+    fail_path: Option<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -196,6 +199,10 @@ fn main() -> anyhow::Result<()> {
         eprintln!("executable not provided");
         exit(1);
     }
+    opt.fail_path = match opt.fail_path {
+        Some(path) => std::fs::canonicalize(path).ok(),
+        None => None
+    };
     if opt.inherit_env {
         // TODO: probably this doesn't interact well with --env
         for (k, v) in std::env::vars_os() {
@@ -233,6 +240,7 @@ fn main() -> anyhow::Result<()> {
                 let payload = lxtrace::Payload::Cmd(cmd_args);
                 let settings = lxtrace::Settings {
                     capture_backtrace: opt.backtrace,
+                    fail_path: opt.fail_path,
                 };
 
                 if let Err(e) = lxtrace::run(payload, settings, sender) {

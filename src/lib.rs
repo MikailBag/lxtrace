@@ -11,9 +11,11 @@ use magic::Magic;
 use serde::{Deserialize, Serialize};
 use std::{mem, os::unix::io::RawFd};
 use tiny_nix_ipc::Socket;
+use std::path::PathBuf;
 
 pub struct Settings {
     pub capture_backtrace: bool,
+    pub fail_path: Option<PathBuf>,
 }
 
 #[repr(C)]
